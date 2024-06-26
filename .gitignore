@@ -1,0 +1,93 @@
+# Build Folders (Bin, Obj, etc)
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Tt]est[Rr]esult
+[Tt]est[Rr]esults
+[Bb]uild[Ll]og.*
+[Ll]ogs/
+*.userprefs
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Mono Auto Generated Files
+mono_crash.*
+
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# VS Code directories
+.vscode/
+.history/
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# Node.js files
+node_modules/
+
+# Visual Studio files
+.vs/
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+*.pdb
+
+# JetBrains Rider
+.idea/
+.idea_modules/
+
+# Azure Pipelines
+azure-pipelines.yml
+
+# ASP.NET logs
+*.log
+
+# Config files
+appsettings*.json
+
+# IIS logs
+IISLogs/
+
+# Runtimes
+bin/
+obj/
+
+# Others
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.pdb
+*.opendb
+*.seed
+*.mseed
+*.ruleset
+*.sql
+*.out
+*.log
+*.patch
+*.pid
+*.orig
+*.diff
+*.mo
+*.pot
+*.class
+*.pyc
+*.pyo
+*.env
+*.kndx
