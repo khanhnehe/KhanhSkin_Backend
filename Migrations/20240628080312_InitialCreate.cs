@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace KhanhSkin_BackEnd.Migrations
 {
     /// <inheritdoc />
-    public partial class UpdateEntities : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -40,13 +40,12 @@ namespace KhanhSkin_BackEnd.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    LastName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    FirstName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FullName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Password = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     PhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Address = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Image = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Address = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Image = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Role = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
@@ -63,7 +62,7 @@ namespace KhanhSkin_BackEnd.Migrations
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     Quantity = table.Column<int>(type: "int", nullable: false),
-                    Discount = table.Column<int>(type: "int", nullable: false),
+                    Discount = table.Column<int>(type: "int", nullable: true),
                     SalePrice = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     SKU = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     BrandId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
@@ -133,8 +132,8 @@ namespace KhanhSkin_BackEnd.Migrations
                     NameVariant = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     PriceVariant = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     QuantityVariant = table.Column<int>(type: "int", nullable: false),
-                    DiscountVariant = table.Column<int>(type: "int", nullable: false),
-                    SalePriceVariant = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    DiscountVariant = table.Column<int>(type: "int", nullable: true),
+                    SalePriceVariant = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     SKUVariant = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ProductId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },

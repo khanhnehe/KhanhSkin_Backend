@@ -68,7 +68,7 @@ namespace KhanhSkin_BackEnd.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("Discount")
+                    b.Property<int?>("Discount")
                         .HasColumnType("int");
 
                     b.Property<string>("Images")
@@ -128,7 +128,7 @@ namespace KhanhSkin_BackEnd.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("DiscountVariant")
+                    b.Property<int?>("DiscountVariant")
                         .HasColumnType("int");
 
                     b.Property<string>("NameVariant")
@@ -148,7 +148,7 @@ namespace KhanhSkin_BackEnd.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal>("SalePriceVariant")
+                    b.Property<decimal?>("SalePriceVariant")
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
@@ -198,23 +198,17 @@ namespace KhanhSkin_BackEnd.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Address")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("FirstName")
+                    b.Property<string>("FullName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Image")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Password")
