@@ -21,10 +21,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
 // AutoMapper configuration
-builder.Services.AddSingleton<IMapper>(provider => new Mapper(new MapperConfiguration(cfg =>
-{
-    // Add your AutoMapper profiles here or load them if they are in separate classes
-})));
+builder.Services.AddAutoMapper(typeof(UserAutoMapperProfile));
 
 // Repository and service injections
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>)); // Adjust if your generic repository setup differs
