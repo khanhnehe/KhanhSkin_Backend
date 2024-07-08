@@ -8,11 +8,13 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 using AutoWrapper.Wrappers;
+using Microsoft.EntityFrameworkCore;
 
 namespace KhanhSkin_BackEnd.Services.Users
 {
     public class UserService : BaseService<User, UserDto, UserCreateDto, BaseGetRequestInput>
     {
+        private readonly IConfiguration _config;
         private readonly PasswordHasher<User> _passwordHasher;
         private readonly IRepository<User> _userRepository; // Khởi tạo repository cho User
         private readonly IMapper _mapper; // Khởi tạo AutoMapper để ánh xạ giữa các đối tượng
@@ -21,12 +23,14 @@ namespace KhanhSkin_BackEnd.Services.Users
 
         // Constructor nhận các tham số cần thiết cho UserService
         public UserService(
+            IConfiguration config,
             IRepository<User> repository,
             IMapper mapper,
             ILogger<UserService> logger,
             ICurrentUser currentUser)
             : base(mapper, repository, logger, currentUser) // Gọi constructor của lớp cơ sở với các tham số phù hợp
         {
+
             _userRepository = repository;
             _mapper = mapper;
             _logger = logger;
@@ -34,8 +38,14 @@ namespace KhanhSkin_BackEnd.Services.Users
             _passwordHasher = new PasswordHasher<User>(); // Khởi tạo passwordHasher
         }
 
+        // Phương thức kiểm tra email đã tồn tại
+        public async Task<bool> CheckEmailExists(string email)
+        {
+            return await _userRepository.AsQueryable().AnyAsync(u => u.Email == email);
+        }
+
         // Phương thức Create để tạo người dùng mới
-        public async Task<UserDto> Create(UserCreateDto input)
+        public override async Task<User> Create(UserCreateDto input)
         {
             // Kiểm tra các thông tin bắt buộc
             if (string.IsNullOrWhiteSpace(input.FullName) ||
@@ -43,6 +53,12 @@ namespace KhanhSkin_BackEnd.Services.Users
                 string.IsNullOrWhiteSpace(input.Password))
             {
                 throw new ApiException("Missing required request parameters", 400);
+            }
+
+            // Kiểm tra email đã tồn tại
+            if (await CheckEmailExists(input.Email))
+            {
+                throw new ApiException("Email đã được sử dụng.");
             }
 
             // Hash mật khẩu trước khi lưu
@@ -57,9 +73,8 @@ namespace KhanhSkin_BackEnd.Services.Users
             // Lưu thay đổi vào cơ sở dữ liệu
             await _userRepository.SaveChangesAsync();
 
-            // Trả về đối tượng UserDto đã tạo, loại bỏ trường Password
-            var userDto = _mapper.Map<UserDto>(user);
-            return userDto;
+            // Trả về đối tượng User đã tạo
+            return user;
         }
 
         // Implement other interface methods...

@@ -10,7 +10,7 @@ namespace KhanhSkin_BackEnd.Services.Users
     public interface IUserService : IBaseService<User, UserDto, UserCreateDto, UserGetRequestInputDto>
     {
        
-        Task<bool> ChangePassword(string Email, string newPassword, string oldPassword = null );
+        Task<bool> ChangePassword(string Email, string Password);
        
         Task<List<UserDto>> GetUsersByRole(Enums.Role role);
     }

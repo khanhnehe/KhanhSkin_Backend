@@ -89,7 +89,6 @@ namespace KhanhSkin_BackEnd.Services
             }
         }
 
-
         public virtual async Task<TEntity> Delete(Guid id)
         {
             try
@@ -133,3 +132,4 @@ namespace KhanhSkin_BackEnd.Services
         }
     }
 }
+//hêm từ khóa virtual vào các phương thức của lớp cơ sở, bạn có thể ghi đè (override)
