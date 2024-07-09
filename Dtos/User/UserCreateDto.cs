@@ -24,10 +24,11 @@ namespace KhanhSkin_BackEnd.Dtos.User
         [Required(ErrorMessage = "Vui lòng nhập mật khẩu!")]
         public string Password { get; set; }
 
-        [Required(ErrorMessage = "Vui lòng chọn vai trò!")]
 
         public string? Image { get; set; }
 
+
+        [Required(ErrorMessage = "Vui lòng chọn vai trò!")]
         public Enums.Role Role { get; set; }
     }
 }

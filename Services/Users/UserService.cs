@@ -9,6 +9,11 @@ using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 using AutoWrapper.Wrappers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using System.Collections.Generic;
 
 namespace KhanhSkin_BackEnd.Services.Users
 {
@@ -38,23 +43,15 @@ namespace KhanhSkin_BackEnd.Services.Users
             _passwordHasher = new PasswordHasher<User>(); // Khởi tạo passwordHasher
         }
 
-        // Phương thức kiểm tra email đã tồn tại
+        // kiểm tra email đã tồn tại
         public async Task<bool> CheckEmailExists(string email)
         {
             return await _userRepository.AsQueryable().AnyAsync(u => u.Email == email);
         }
 
-        // Phương thức Create để tạo người dùng mới
         public override async Task<User> Create(UserCreateDto input)
         {
-            // Kiểm tra các thông tin bắt buộc
-            if (string.IsNullOrWhiteSpace(input.FullName) ||
-                string.IsNullOrWhiteSpace(input.Email) ||
-                string.IsNullOrWhiteSpace(input.Password))
-            {
-                throw new ApiException("Missing required request parameters", 400);
-            }
-
+           
             // Kiểm tra email đã tồn tại
             if (await CheckEmailExists(input.Email))
             {
@@ -77,6 +74,75 @@ namespace KhanhSkin_BackEnd.Services.Users
             return user;
         }
 
-        // Implement other interface methods...
+
+        public async Task<bool> ChangePassword(string email, string currentPassword, string newPassword)
+        {
+            var user = await _userRepository.AsQueryable().IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Email == email);
+            if (user == null)
+            {
+                throw new ApiException("Không tìm thấy người dùng.");
+            }
+
+            // Kiểm tra mật khẩu hiện tại
+            var verificationResult = _passwordHasher.VerifyHashedPassword(user, user.Password, currentPassword);
+            if (verificationResult == PasswordVerificationResult.Failed)
+            {
+                throw new ApiException("Mật khẩu hiện tại không chính xác.");
+            }
+
+            // Hash mật khẩu mới và cập nhật
+            user.Password = _passwordHasher.HashPassword(user, newPassword);
+            await _userRepository.UpdateAsync(user);
+            await _userRepository.SaveChangesAsync();
+
+            return true;
+        }
+
+
+        public async Task<string> SignIn(SignInDto input)
+        {
+            var user = await _userRepository.AsQueryable().FirstOrDefaultAsync(u => u.Email == input.Email);
+            if (user == null)
+            {
+                throw new ApiException("Email không tồn tại.");
+            }
+
+            var result = _passwordHasher.VerifyHashedPassword(user, user.Password, input.Password);
+            if (result == PasswordVerificationResult.Failed)
+            {
+                throw new ApiException("Mật khẩu không đúng.");
+            }
+
+            return GenerateJWT(user);
+        }
+
+
+
+
+        private string GenerateJWT(User user)
+        {
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role, user.Role.ToString()), // Chuyển đổi Role sang string
+                new Claim("Id", user.Id.ToString()),
+                new Claim("Name", user.FullName ?? string.Empty),
+            };
+
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                issuer: _config["Jwt:Issuer"],
+                audience: _config["Jwt:Audience"],
+                expires: DateTime.UtcNow.AddHours(7).AddDays(30),
+                signingCredentials: credentials,
+                claims: claims);
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var stringToken = tokenHandler.WriteToken(token);
+            return stringToken;
+        }
+
     }
 }

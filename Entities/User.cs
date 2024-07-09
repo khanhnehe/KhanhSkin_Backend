@@ -26,7 +26,9 @@ namespace KhanhSkin_BackEnd.Entities
 
         public string? Image { get; set; }
 
-        [Required(ErrorMessage = "Vui lòng chọn vai trò!")]
+
         public Enums.Role Role { get; set; }
+
+
     }
 }

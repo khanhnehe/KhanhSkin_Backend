@@ -7,68 +7,90 @@ using KhanhSkin_BackEnd.Repositories;
 using KhanhSkin_BackEnd.Services.Users;
 using KhanhSkin_BackEnd.Services.CurrentUser;
 using AutoMapper;
+using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using System;
+using AutoWrapper;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Đọc cấu hình JWT từ appsettings.json
+var jwtSettings = builder.Configuration.GetSection("Jwt");
+
+// Cấu hình DbContext sử dụng chuỗi kết nối từ appsettings
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Register IHttpContextAccessor
+// Đăng ký IHttpContextAccessor để truy cập HttpContext trong ứng dụng
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
-// AutoMapper configuration
+// Cấu hình AutoMapper để ánh xạ đối tượng DTO
 builder.Services.AddAutoMapper(typeof(UserAutoMapperProfile));
 
-// Repository and service injections
+// Đăng ký Repository và Services cho Dependency Injection
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IRepository<User>, Repository<User>>();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddScoped<UserService>();
 
-// Controller support
+// Thêm hỗ trợ cho Controllers và API Endpoints
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-// Swagger configuration
+// Cấu hình Swagger
+// Cấu hình Swagger
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
     {
         Title = "Khanh Skin API",
-        Version = "v1",
-        Description = "An API to manage Khanh Skin operations.",
-        Contact = new OpenApiContact
-        {
-            Name = "Khanh Skin Support",
-            Email = "support@khanhskin.com",
-            Url = new Uri("https://khanhskin.com/support")
-        }
+        Version = "v1"
     });
 });
 
+
+// Thêm JWT Authentication
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtSettings["Issuer"],
+            ValidAudience = jwtSettings["Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]))
+        };
+    });
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Cấu hình pipeline HTTP
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Khanh Skin API v1"));
-
-    // Configure HTTPS redirection
-    app.UseHttpsRedirection();
 }
 
-// Ensure the AppDbContext is migrated
-using (var scope = app.Services.CreateScope())
+// Sử dụng HTTPS Redirection để đảm bảo an toàn
+app.UseHttpsRedirection();
+
+// Sử dụng wrapper để xử lý response và exceptions một cách nhất quán
+app.UseApiResponseAndExceptionWrapper(new AutoWrapperOptions
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    dbContext.Database.Migrate();
-}
+    ExcludePaths = new List<AutoWrapperExcludePath> { new AutoWrapperExcludePath("/api/report/export", ExcludeMode.Strict) }
+});
 
+// Kích hoạt middleware xác thực
+app.UseAuthentication();
 app.UseAuthorization();
+
+// Đăng ký các controller
 app.MapControllers();
 
 app.Run();
