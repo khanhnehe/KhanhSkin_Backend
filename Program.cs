@@ -41,7 +41,6 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
 // Cấu hình Swagger
-// Cấu hình Swagger
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
@@ -49,8 +48,35 @@ builder.Services.AddSwaggerGen(c =>
         Title = "Khanh Skin API",
         Version = "v1"
     });
-});
 
+    // Cấu hình Swagger để sử dụng Bearer Token
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement()
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                },
+                Scheme = "oauth2",
+                Name = "Bearer",
+                In = ParameterLocation.Header,
+            },
+            new List<string>()
+        }
+    });
+});
 
 // Thêm JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -58,12 +84,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     {
         options.TokenValidationParameters = new TokenValidationParameters
         {
+            // Xác thực người phát token
             ValidateIssuer = true,
+            // Xác thực người nhận token
             ValidateAudience = true,
+            // Xác thực thời gian sống của token
             ValidateLifetime = true,
+            // Xác thực chữ ký của token
             ValidateIssuerSigningKey = true,
+            // Định nghĩa người phát token hợp lệ
             ValidIssuer = jwtSettings["Issuer"],
+            // Định nghĩa người nhận token hợp lệ
             ValidAudience = jwtSettings["Audience"],
+            // Định nghĩa khóa bí mật dùng để ký token
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]))
         };
     });

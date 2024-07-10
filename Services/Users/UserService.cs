@@ -14,6 +14,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Collections.Generic;
+using Microsoft.AspNetCore.Authorization;
 
 namespace KhanhSkin_BackEnd.Services.Users
 {
@@ -35,7 +36,7 @@ namespace KhanhSkin_BackEnd.Services.Users
             ICurrentUser currentUser)
             : base(mapper, repository, logger, currentUser) // Gọi constructor của lớp cơ sở với các tham số phù hợp
         {
-
+            _config = config;
             _userRepository = repository;
             _mapper = mapper;
             _logger = logger;
@@ -74,7 +75,7 @@ namespace KhanhSkin_BackEnd.Services.Users
             return user;
         }
 
-
+        [Authorize]
         public async Task<bool> ChangePassword(string email, string currentPassword, string newPassword)
         {
             var user = await _userRepository.AsQueryable().IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Email == email);
@@ -126,7 +127,7 @@ namespace KhanhSkin_BackEnd.Services.Users
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Role, user.Role.ToString()), // Chuyển đổi Role sang string
                 new Claim("Id", user.Id.ToString()),
-                new Claim("Name", user.FullName ?? string.Empty),
+                new Claim("FullName", user.FullName ?? string.Empty),
             };
 
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));

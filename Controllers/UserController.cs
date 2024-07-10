@@ -6,6 +6,8 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
 using AutoWrapper.Wrappers;
+using Microsoft.AspNetCore.Authorization;
+
 
 namespace KhanhSkin_BackEnd.Controllers
 {
@@ -21,6 +23,8 @@ namespace KhanhSkin_BackEnd.Controllers
             _userService = userService;
             _logger = logger;
         }
+
+        [Authorize(Roles = "Admin")]
 
         [HttpPost("create")]
         public async Task<IActionResult> Create(UserCreateDto input)
