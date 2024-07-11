@@ -7,7 +7,7 @@ using KhanhSkin_BackEnd.Consts;
 
 namespace KhanhSkin_BackEnd.Services.Users
 {
-    public interface IUserService : IBaseService<User, UserDto, UserCreateDto, UserGetRequestInputDto>
+    public interface IUserService : IBaseService<User, UserDto, CreateUpdateUserDto, UserGetRequestInputDto>
     {
        
         Task<bool> ChangePassword(string Email, string Password);

@@ -18,7 +18,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace KhanhSkin_BackEnd.Services.Users
 {
-    public class UserService : BaseService<User, UserDto, UserCreateDto, BaseGetRequestInput>
+    public class UserService : BaseService<User, UserDto, CreateUpdateUserDto, BaseGetRequestInput>
     {
         private readonly IConfiguration _config;
         private readonly PasswordHasher<User> _passwordHasher;
@@ -50,7 +50,7 @@ namespace KhanhSkin_BackEnd.Services.Users
             return await _userRepository.AsQueryable().AnyAsync(u => u.Email == email);
         }
 
-        public override async Task<User> Create(UserCreateDto input)
+        public override async Task<User> Create(CreateUpdateUserDto input)
         {
            
             // Kiểm tra email đã tồn tại
@@ -98,6 +98,64 @@ namespace KhanhSkin_BackEnd.Services.Users
 
             return true;
         }
+
+        public async Task<UserDto> GetUserById(Guid id)
+        {
+            var user = await _userRepository.GetAsync(id);
+            if (user == null)
+            {
+                throw new ApiException("Không tìm thấy người dùng.");
+            }
+            return _mapper.Map<UserDto>(user);
+        }
+
+
+        public async Task<List<UserDto>> GetAllUsers()
+        {
+            var users = await _userRepository.GetAllListAsync();
+            return _mapper.Map<List<UserDto>>(users);
+        }
+
+
+        public async Task<UserDto> UpdateUser(Guid id, CreateUpdateUserDto input)
+        {
+            var user = await _userRepository.AsQueryable().IgnoreQueryFilters().FirstOrDefaultAsync(a => a.Id == id);
+            if (user == null)
+            {
+                throw new ApiException("Không tìm thấy người dùng.");
+            }
+
+            // Kiểm tra xem email mới có khác với email hiện tại không và nếu có, kiểm tra xem nó đã được sử dụng bởi người dùng khác chưa
+            if (!string.Equals(user.Email, input.Email, StringComparison.OrdinalIgnoreCase) && await CheckEmailExists(input.Email))
+            {
+                throw new ApiException("Email đã được sử dụng.");
+            }
+
+            // Cập nhật thông tin user từ input
+            _mapper.Map(input, user);
+            // Lưu ý: Không cập nhật mật khẩu ở đây. Nếu cần thay đổi mật khẩu, nên có một phương thức riêng biệt.
+
+            await _userRepository.UpdateAsync(user);
+            await _userRepository.SaveChangesAsync();
+
+            return _mapper.Map<UserDto>(user);
+        }
+
+
+        public async Task<bool> DeleteUser(Guid id)
+        {
+            // Tìm người dùng bằng ID, bỏ qua các bộ lọc truy vấn (nếu có)
+            var user = await _userRepository.AsQueryable().IgnoreQueryFilters().FirstOrDefaultAsync(a => a.Id == id);
+            if (user == null)
+            {
+                throw new ApiException("Không tìm thấy người dùng.");
+            }
+
+            // Xóa người dùng và lưu thay đổi
+            await _userRepository.DeleteByEntityAsync(user);
+            return true;
+        }
+
 
 
         public async Task<string> SignIn(SignInDto input)

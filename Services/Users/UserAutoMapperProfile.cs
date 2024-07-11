@@ -9,7 +9,11 @@ namespace KhanhSkin_BackEnd.Services.Users
         public UserAutoMapperProfile()
         {
             CreateMap<User, UserDto>();
-            CreateMap<UserCreateDto, User>();
+            CreateMap<CreateUpdateUserDto, User>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore()) // Bỏ qua ánh xạ Id
+                .ForMember(dest => dest.Password, opt => opt.Ignore()) // Bỏ qua ánh xạ Password
+                .ForMember(dest => dest.Role, opt => opt.Ignore()); // Bỏ qua ánh xạ Role
+
         }
     }
 }

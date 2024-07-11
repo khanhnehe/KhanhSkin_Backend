@@ -27,7 +27,7 @@ namespace KhanhSkin_BackEnd.Controllers
         [Authorize(Roles = "Admin")]
 
         [HttpPost("create")]
-        public async Task<IActionResult> Create(UserCreateDto input)
+        public async Task<IActionResult> Create(CreateUpdateUserDto input)
         {
             try
             {
@@ -59,6 +59,82 @@ namespace KhanhSkin_BackEnd.Controllers
             catch (Exception ex)
             {
                 throw new ApiException($"Có lỗi xảy ra: {ex.Message}");
+            }
+        }
+
+        [HttpGet("get-user-by-id/{id}")]
+        public async Task<IActionResult> GetUserById(Guid id)
+        {
+            try
+            {
+                var user = await _userService.GetUserById(id);
+                return Ok(user);
+            }
+            catch (ApiException ex)
+            {
+                throw new ApiException($"{ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                throw new ApiException($"Có lỗi xảy ra: {ex.Message}");
+            }
+        }
+
+        [HttpGet("get-all-users")]
+        public async Task<IActionResult> GetAllUsers()
+        {
+            try
+            {
+                var users = await _userService.GetAllUsers();
+                return Ok(users);
+            }
+            catch (ApiException ex)
+            {
+                throw new ApiException($"{ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                throw new ApiException($"Có lỗi xảy ra: {ex.Message}");
+            }
+        }
+
+        [HttpPut("update-user/{id}")]
+        public async Task<IActionResult> UpdateUser(Guid id, [FromBody] CreateUpdateUserDto input)
+        {
+            try
+            {
+                var updatedUser = await _userService.UpdateUser(id, input);
+                return Ok(updatedUser);
+            }
+            catch (ApiException ex)
+            {
+                throw new ApiException($"{ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                throw new ApiException($"Có lỗi xảy ra: {ex.Message}");
+            }
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize] // Yêu cầu xác thực người dùng trước khi cho phép xóa
+        public async Task<IActionResult> DeleteUser(Guid id)
+        {
+            try
+            {
+                var result = await _userService.DeleteUser(id);
+                if (result)
+                {
+                    return Ok(new { message = "Người dùng đã được xóa thành công." });
+                }
+                else
+                {
+                    return NotFound(new { message = "Không tìm thấy người dùng để xóa." });
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
         }
 

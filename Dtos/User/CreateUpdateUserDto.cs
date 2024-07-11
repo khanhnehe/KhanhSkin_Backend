@@ -4,9 +4,9 @@ using System.ComponentModel.DataAnnotations;
 
 namespace KhanhSkin_BackEnd.Dtos.User
 {
-    public class UserCreateDto : BaseDto
+    public class CreateUpdateUserDto : BaseDto
     {
-        public UserCreateDto()
+        public CreateUpdateUserDto()
         {
             Role = Enums.Role.User;
         }
