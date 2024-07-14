@@ -16,6 +16,10 @@ namespace KhanhSkin_BackEnd.Services.Users
 
         Task<string> SignIn(SignInDto input);
 
+        // Thêm các phương thức mới
+        Task<UserDto> GetUserById(Guid id);
+        Task<List<UserDto>> GetAllUsers();
+
     }
 
 }

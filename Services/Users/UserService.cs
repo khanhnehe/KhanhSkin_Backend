@@ -75,7 +75,6 @@ namespace KhanhSkin_BackEnd.Services.Users
             return user;
         }
 
-        [Authorize]
         public async Task<bool> ChangePassword(string email, string currentPassword, string newPassword)
         {
             var user = await _userRepository.AsQueryable().IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Email == email);

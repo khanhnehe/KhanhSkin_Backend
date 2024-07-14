@@ -14,6 +14,7 @@ using AutoWrapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using KhanhSkin_BackEnd.Services.Brands;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,8 +34,10 @@ builder.Services.AddAutoMapper(typeof(UserAutoMapperProfile));
 // Đăng ký Repository và Services cho Dependency Injection
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IRepository<User>, Repository<User>>();
+builder.Services.AddScoped<IRepository<Brand>, Repository<Brand>>();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<BrandService>();
 
 // Thêm hỗ trợ cho Controllers và API Endpoints
 builder.Services.AddControllers();

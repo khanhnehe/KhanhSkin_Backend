@@ -1,5 +1,4 @@
-﻿// UserController.cs
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using KhanhSkin_BackEnd.Dtos.User;
 using KhanhSkin_BackEnd.Services.Users;
 using Microsoft.Extensions.Logging;
@@ -26,7 +25,7 @@ namespace KhanhSkin_BackEnd.Controllers
         }
 
         [Authorize(Roles = "Admin")]
-        [HttpPost("create")]
+        [HttpPost("create-user")]
         public async Task<IActionResult> Create(CreateUpdateUserDto input)
         {
             try
@@ -121,7 +120,7 @@ namespace KhanhSkin_BackEnd.Controllers
         }
 
 
-        [HttpDelete("{id}")]
+        [HttpDelete("delete-user/{id}")]
         [Authorize] 
         public async Task<IActionResult> DeleteUser(Guid id)
         {
