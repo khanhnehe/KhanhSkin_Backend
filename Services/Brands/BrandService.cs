@@ -81,9 +81,16 @@ namespace KhanhSkin_BackEnd.Services.Brands
 
         public async Task<bool> Delete(Guid id)
         {
-            var brand = await _brandRepository.DeleteAsync(id);
-            return brand != null;
+            var brand = await _brandRepository.AsQueryable().FirstOrDefaultAsync(a => a.Id == id);
+            if (brand == null)
+            {
+                throw new ApiException("Không tìm thấy thương hiệu."); // Hoặc sử dụng một ngoại lệ tùy chỉnh phù hợp với logic xử lý lỗi của bạn
+            }
+
+            await _brandRepository.DeleteAsync(id);
+            return true; // Nếu không có lỗi, trả về true để báo hiệu việc xóa thành công
         }
+
 
         public async Task<List<BrandDto>> GetAll()
         {

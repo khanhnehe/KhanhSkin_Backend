@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace KhanhSkin_BackEnd.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class Migrations : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -33,6 +33,18 @@ namespace KhanhSkin_BackEnd.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Categories", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ProductTypes",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    TypeName = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProductTypes", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -82,20 +94,25 @@ namespace KhanhSkin_BackEnd.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ProductTypes",
+                name: "ProductTypeCategory",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TypeName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CategoryId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    CategoryId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ProductTypeId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ProductTypes", x => x.Id);
+                    table.PrimaryKey("PK_ProductTypeCategory", x => new { x.CategoryId, x.ProductTypeId });
                     table.ForeignKey(
-                        name: "FK_ProductTypes_Categories_CategoryId",
+                        name: "FK_ProductTypeCategory_Categories_CategoryId",
                         column: x => x.CategoryId,
                         principalTable: "Categories",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ProductTypeCategory_ProductTypes_ProductTypeId",
+                        column: x => x.ProductTypeId,
+                        principalTable: "ProductTypes",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -125,6 +142,30 @@ namespace KhanhSkin_BackEnd.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ProductProductType",
+                columns: table => new
+                {
+                    ProductTypesId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ProductsId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProductProductType", x => new { x.ProductTypesId, x.ProductsId });
+                    table.ForeignKey(
+                        name: "FK_ProductProductType_ProductTypes_ProductTypesId",
+                        column: x => x.ProductTypesId,
+                        principalTable: "ProductTypes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ProductProductType_Products_ProductsId",
+                        column: x => x.ProductsId,
+                        principalTable: "Products",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ProductVariants",
                 columns: table => new
                 {
@@ -142,30 +183,6 @@ namespace KhanhSkin_BackEnd.Migrations
                     table.PrimaryKey("PK_ProductVariants", x => x.Id);
                     table.ForeignKey(
                         name: "FK_ProductVariants_Products_ProductId",
-                        column: x => x.ProductId,
-                        principalTable: "Products",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "ProductProductType",
-                columns: table => new
-                {
-                    ProductId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ProductTypeId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ProductProductType", x => new { x.ProductId, x.ProductTypeId });
-                    table.ForeignKey(
-                        name: "FK_ProductProductType_ProductTypes_ProductTypeId",
-                        column: x => x.ProductTypeId,
-                        principalTable: "ProductTypes",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_ProductProductType_Products_ProductId",
                         column: x => x.ProductId,
                         principalTable: "Products",
                         principalColumn: "Id",
@@ -211,9 +228,9 @@ namespace KhanhSkin_BackEnd.Migrations
                 column: "ProductId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProductProductType_ProductTypeId",
+                name: "IX_ProductProductType_ProductsId",
                 table: "ProductProductType",
-                column: "ProductTypeId");
+                column: "ProductsId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Products_BrandId",
@@ -221,9 +238,9 @@ namespace KhanhSkin_BackEnd.Migrations
                 column: "BrandId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProductTypes_CategoryId",
-                table: "ProductTypes",
-                column: "CategoryId");
+                name: "IX_ProductTypeCategory_ProductTypeId",
+                table: "ProductTypeCategory",
+                column: "ProductTypeId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ProductVariants_ProductId",
@@ -256,7 +273,13 @@ namespace KhanhSkin_BackEnd.Migrations
                 name: "ProductProductType");
 
             migrationBuilder.DropTable(
+                name: "ProductTypeCategory");
+
+            migrationBuilder.DropTable(
                 name: "Reviews");
+
+            migrationBuilder.DropTable(
+                name: "Categories");
 
             migrationBuilder.DropTable(
                 name: "ProductTypes");
@@ -266,9 +289,6 @@ namespace KhanhSkin_BackEnd.Migrations
 
             migrationBuilder.DropTable(
                 name: "Users");
-
-            migrationBuilder.DropTable(
-                name: "Categories");
 
             migrationBuilder.DropTable(
                 name: "Products");

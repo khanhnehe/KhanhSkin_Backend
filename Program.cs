@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using KhanhSkin_BackEnd.Services.Brands;
+using KhanhSkin_BackEnd.Services.ProductTypes;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,6 +39,7 @@ builder.Services.AddScoped<IRepository<Brand>, Repository<Brand>>();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<BrandService>();
+builder.Services.AddScoped<ProductTypeService>();
 
 // Thêm hỗ trợ cho Controllers và API Endpoints
 builder.Services.AddControllers();

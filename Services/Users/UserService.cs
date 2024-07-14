@@ -15,6 +15,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Authorization;
+using KhanhSkin_BackEnd.Consts;
 
 namespace KhanhSkin_BackEnd.Services.Users
 {
@@ -62,9 +63,13 @@ namespace KhanhSkin_BackEnd.Services.Users
             // Hash mật khẩu trước khi lưu
             var hashedPassword = _passwordHasher.HashPassword(new User(), input.Password);
 
+
+
             // Tạo đối tượng User từ UserCreateDto
             var user = _mapper.Map<User>(input);
             user.Password = hashedPassword;
+
+
 
             // Thêm người dùng vào cơ sở dữ liệu
             await _userRepository.CreateAsync(user);

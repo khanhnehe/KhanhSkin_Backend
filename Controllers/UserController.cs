@@ -24,7 +24,7 @@ namespace KhanhSkin_BackEnd.Controllers
             _logger = logger;
         }
 
-        [Authorize(Roles = "Admin")]
+        //[Authorize(Roles = "Admin")]
         [HttpPost("create-user")]
         public async Task<IActionResult> Create(CreateUpdateUserDto input)
         {

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace KhanhSkin_BackEnd.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20240628080312_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20240714130811_MigrationUpdateRole")]
+    partial class MigrationUpdateRole
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -111,16 +111,11 @@ namespace KhanhSkin_BackEnd.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("CategoryId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("TypeName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CategoryId");
 
                     b.ToTable("ProductTypes");
                 });
@@ -247,17 +242,32 @@ namespace KhanhSkin_BackEnd.Migrations
 
             modelBuilder.Entity("ProductProductType", b =>
                 {
-                    b.Property<Guid>("ProductId")
+                    b.Property<Guid>("ProductTypesId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProductsId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("ProductTypesId", "ProductsId");
+
+                    b.HasIndex("ProductsId");
+
+                    b.ToTable("ProductProductType");
+                });
+
+            modelBuilder.Entity("ProductTypeCategory", b =>
+                {
+                    b.Property<Guid>("CategoryId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("ProductTypeId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.HasKey("ProductId", "ProductTypeId");
+                    b.HasKey("CategoryId", "ProductTypeId");
 
                     b.HasIndex("ProductTypeId");
 
-                    b.ToTable("ProductProductType");
+                    b.ToTable("ProductTypeCategory");
                 });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Product", b =>
@@ -269,17 +279,6 @@ namespace KhanhSkin_BackEnd.Migrations
                         .IsRequired();
 
                     b.Navigation("Brand");
-                });
-
-            modelBuilder.Entity("KhanhSkin_BackEnd.Entities.ProductType", b =>
-                {
-                    b.HasOne("KhanhSkin_BackEnd.Entities.Category", "Category")
-                        .WithMany("ProductTypes")
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Category");
                 });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.ProductVariant", b =>
@@ -337,29 +336,39 @@ namespace KhanhSkin_BackEnd.Migrations
 
             modelBuilder.Entity("ProductProductType", b =>
                 {
+                    b.HasOne("KhanhSkin_BackEnd.Entities.ProductType", null)
+                        .WithMany()
+                        .HasForeignKey("ProductTypesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("KhanhSkin_BackEnd.Entities.Product", null)
                         .WithMany()
-                        .HasForeignKey("ProductId")
+                        .HasForeignKey("ProductsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ProductTypeCategory", b =>
+                {
+                    b.HasOne("KhanhSkin_BackEnd.Entities.Category", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("FK_ProductProductType_Products_ProductId");
+                        .HasConstraintName("FK_ProductTypeCategory_Categories_CategoryId");
 
                     b.HasOne("KhanhSkin_BackEnd.Entities.ProductType", null)
                         .WithMany()
                         .HasForeignKey("ProductTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("FK_ProductProductType_ProductTypes_ProductTypeId");
+                        .HasConstraintName("FK_ProductTypeCategory_ProductTypes_ProductTypeId");
                 });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Brand", b =>
                 {
                     b.Navigation("Products");
-                });
-
-            modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Category", b =>
-                {
-                    b.Navigation("ProductTypes");
                 });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Product", b =>

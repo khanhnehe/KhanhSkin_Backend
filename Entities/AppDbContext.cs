@@ -58,11 +58,26 @@ namespace KhanhSkin_BackEnd.Entities
                 .WithMany()
                 .HasForeignKey(r => r.ProductVariantId);
 
-            // Thiết lập khóa ngoại và quan hệ giữa Category và ProductType
-            modelBuilder.Entity<Category>()
-                .HasMany(c => c.ProductTypes)
-                .WithOne(t => t.Category)
-                .HasForeignKey(t => t.CategoryId);
+            // Cấu hình mối quan hệ nhiều-nhiều giữa ProductType và Category
+            // Sử dụng bảng liên kết tùy chỉnh "ProductTypeCategory"
+            modelBuilder.Entity<ProductType>()
+                .HasMany(pt => pt.Categories)
+                .WithMany(c => c.ProductTypes)
+                .UsingEntity<Dictionary<string, object>>(
+                    "ProductTypeCategory", // Tên bảng liên kết
+                    j => j
+                        .HasOne<Category>()
+                        .WithMany()
+                        .HasForeignKey("CategoryId") // Khóa ngoại liên kết đến Category
+                        .HasConstraintName("FK_ProductTypeCategory_Categories_CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade),
+                    j => j
+                        .HasOne<ProductType>()
+                        .WithMany()
+                        .HasForeignKey("ProductTypeId") // Khóa ngoại liên kết đến ProductType
+                        .HasConstraintName("FK_ProductTypeCategory_ProductTypes_ProductTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                );
 
             // Thiết lập bảng nối giữa Product và Category
             modelBuilder.Entity<Product>()
@@ -85,24 +100,8 @@ namespace KhanhSkin_BackEnd.Entities
                 );
 
             // Thiết lập bảng nối giữa Product và ProductType
-            modelBuilder.Entity<Product>()
-                .HasMany(p => p.ProductTypes)
-                .WithMany(t => t.Products)
-                .UsingEntity<Dictionary<string, object>>(
-                    "ProductProductType",
-                    j => j
-                        .HasOne<ProductType>()
-                        .WithMany()
-                        .HasForeignKey("ProductTypeId")
-                        .HasConstraintName("FK_ProductProductType_ProductTypes_ProductTypeId")
-                        .OnDelete(DeleteBehavior.Cascade),
-                    j => j
-                        .HasOne<Product>()
-                        .WithMany()
-                        .HasForeignKey("ProductId")
-                        .HasConstraintName("FK_ProductProductType_Products_ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                );
+            // Đã được thay thế bởi cấu hình mối quan hệ nhiều-nhiều giữa ProductType và Category ở trên
+            // Cấu hình này không còn cần thiết và có thể bỏ qua
         }
     }
 }

@@ -29,6 +29,6 @@ namespace KhanhSkin_BackEnd.Dtos.User
 
 
         [Required(ErrorMessage = "Vui lòng chọn vai trò!")]
-        public Enums.Role Role { get; set; }
+        public Enums.Role Role { get; set; } = Enums.Role.User;
     }
 }
