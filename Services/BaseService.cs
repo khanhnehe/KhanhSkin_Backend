@@ -8,6 +8,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Linq.Dynamic.Core;
+using Microsoft.EntityFrameworkCore;
+
 
 namespace KhanhSkin_BackEnd.Services
 {
@@ -32,6 +35,38 @@ namespace KhanhSkin_BackEnd.Services
             _logger = logger;
             _currentUser = currentUser;
         }
+
+        public virtual async Task<PagedViewModel<TDto>> GetListPaged(TGetInput input)
+        {
+            // Tạo một truy vấn lọc dựa trên các điều kiện được cung cấp trong `input`.
+            var query = CreateFilteredQuery(input);
+
+            // Đếm tổng số bản ghi thỏa mãn điều kiện truy vấn để sử dụng cho việc phân trang.
+            var totalCount = await query.CountAsync();
+
+            // Kiểm tra xem có yêu cầu sắp xếp không. Nếu có, áp dụng sắp xếp dựa trên chuỗi `input.Sort`.
+            if (!string.IsNullOrWhiteSpace(input.Sort))
+            {
+                query = query.OrderBy(input.Sort);
+            }
+
+            // Kiểm tra xem có thông tin phân trang không. Nếu có, áp dụng phân trang dựa trên `PageIndex` và `PageSize`.
+            if (input.PageIndex.HasValue && input.PageSize.HasValue)
+            {
+                query = query.Skip((input.PageIndex.Value - 1) * input.PageSize.Value).Take(input.PageSize.Value);
+            }
+
+            // Lấy dữ liệu từ truy vấn sau khi đã áp dụng sắp xếp và phân trang, sau đó ánh xạ từ TEntity sang TDto.
+            var data = await query.Select(a => _mapper.Map<TDto>(a)).ToListAsync();
+
+            // Trả về kết quả dưới dạng một đối tượng `PagedViewModel<TDto>` chứa danh sách các đối tượng TDto và tổng số bản ghi.
+            return new PagedViewModel<TDto>
+            {
+                Items = data,
+                TotalRecord = totalCount
+            };
+        }
+
 
         public virtual async Task<TEntity> Create(TCreateDto input)
         {
@@ -117,6 +152,13 @@ namespace KhanhSkin_BackEnd.Services
             }
         }
 
+        public virtual IQueryable<TEntity> CreateFilteredQuery(TGetInput input)
+        {
+            var query = _repository.AsQueryable();
+            return query;
+        }
+
+
         public virtual async Task<List<TDto>> GetAll()
         {
             try
@@ -130,6 +172,9 @@ namespace KhanhSkin_BackEnd.Services
                 throw;
             }
         }
+
+       
+
     }
 }
 //hêm từ khóa virtual vào các phương thức của lớp cơ sở, bạn có thể ghi đè (override)

@@ -9,9 +9,9 @@ namespace KhanhSkin_BackEnd.Services
     //interface chung cho các dịch vụ cơ bản
     public interface IBaseService<TEntity, TDto, TCreateDto, TGetInput>
         where TEntity : BaseEntity // phải là một lớp
-        where TDto : BaseDto 
-        where TCreateDto : BaseDto 
-        where TGetInput : BaseGetRequestInput 
+        where TDto : BaseDto
+        where TCreateDto : BaseDto
+        where TGetInput : BaseGetRequestInput
     {
         // tạo một thực thể mới từ DTO tạo mới
         Task<TEntity> Create(TCreateDto input);
@@ -33,5 +33,8 @@ namespace KhanhSkin_BackEnd.Services
 
         //lấy tất cả các thực thể dưới dạng danh sách
         Task<List<TDto>> GetAll();
+
+        Task<PagedViewModel<TDto>> GetListPaged(TGetInput input);
+
     }
 }

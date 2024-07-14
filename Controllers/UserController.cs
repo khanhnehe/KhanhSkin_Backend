@@ -7,6 +7,7 @@ using System;
 using System.Threading.Tasks;
 using AutoWrapper.Wrappers;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 
 
 namespace KhanhSkin_BackEnd.Controllers
@@ -25,7 +26,6 @@ namespace KhanhSkin_BackEnd.Controllers
         }
 
         [Authorize(Roles = "Admin")]
-
         [HttpPost("create")]
         public async Task<IActionResult> Create(CreateUpdateUserDto input)
         {
@@ -44,6 +44,7 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+        [Authorize]
         [HttpPost("change-password")]
         public async Task<IActionResult> ChangePassword(ChangePasswordDto input)
         {
@@ -62,6 +63,7 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+        [Authorize]
         [HttpGet("get-user-by-id/{id}")]
         public async Task<IActionResult> GetUserById(Guid id)
         {
@@ -80,6 +82,7 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+        [Authorize]
         [HttpGet("get-all-users")]
         public async Task<IActionResult> GetAllUsers()
         {
@@ -98,6 +101,7 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+        [Authorize]
         [HttpPut("update-user/{id}")]
         public async Task<IActionResult> UpdateUser(Guid id, [FromBody] CreateUpdateUserDto input)
         {
@@ -116,8 +120,9 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+
         [HttpDelete("{id}")]
-        [Authorize] // Yêu cầu xác thực người dùng trước khi cho phép xóa
+        [Authorize] 
         public async Task<IActionResult> DeleteUser(Guid id)
         {
             try
@@ -138,6 +143,7 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+
         [HttpPost("sign-in")]
         public async Task<IActionResult> SignIn(SignInDto input)
         {
@@ -155,5 +161,28 @@ namespace KhanhSkin_BackEnd.Controllers
                 throw new ApiException($"Có lỗi xảy ra: {ex.Message}");
             }
         }
+
+        [Authorize]
+        [HttpGet("filter-users")]
+        public async Task<IActionResult> CreateFilteredQuery([FromQuery] UserGetRequestInputDto input)
+        {
+            try
+            {
+                //_userService.CreateFilteredQuery(input) trả về IQueryable<User>
+                var query = _userService.CreateFilteredQuery(input);
+
+                // Chuyển đổi IQueryable thành List bằng cách sử dụng ToListAsync() để có thể await
+                var users = await query.ToListAsync();
+
+                return Ok(users);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi lấy danh sách người dùng đã lọc.");
+                return StatusCode(500, "Có lỗi xảy ra khi lấy danh sách người dùng đã lọc.");
+            }
+        }
+
+
     }
 }

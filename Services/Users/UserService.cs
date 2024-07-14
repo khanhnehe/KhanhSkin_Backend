@@ -18,7 +18,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace KhanhSkin_BackEnd.Services.Users
 {
-    public class UserService : BaseService<User, UserDto, CreateUpdateUserDto, BaseGetRequestInput>
+    public class UserService : BaseService<User, UserDto, CreateUpdateUserDto, UserGetRequestInputDto>
     {
         private readonly IConfiguration _config;
         private readonly PasswordHasher<User> _passwordHasher;
@@ -203,5 +203,25 @@ namespace KhanhSkin_BackEnd.Services.Users
             return stringToken;
         }
 
+
+        public override IQueryable<User> CreateFilteredQuery(UserGetRequestInputDto input)
+        {
+            var query = base.CreateFilteredQuery(input);
+
+            if (!string.IsNullOrEmpty(input.FreeTextSearch))
+            {
+                input.FreeTextSearch = input.FreeTextSearch.Trim().ToLower();
+                query = query.Where(a => a.FullName.ToLower().Contains(input.FreeTextSearch)
+                                         || a.Email.ToLower().Contains(input.FreeTextSearch)
+                                         || a.PhoneNumber.ToLower().Contains(input.FreeTextSearch));
+            }
+
+            if (input.Role.HasValue)
+            {
+                query = query.Where(a => a.Role == input.Role.Value);
+            }
+
+            return query;
+        }
     }
 }
