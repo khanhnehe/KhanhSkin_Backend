@@ -9,9 +9,8 @@ namespace KhanhSkin_BackEnd.Services.ProductTypes
         public ProductTypeAutoMapperProfile()
         {
             // Tạo ánh xạ từ Entity ProductType sang ProductTypeDto
-            CreateMap<ProductType, ProductTypeDto>()
+            CreateMap<ProductType, ProductTypeDto>();
                 // Cấu hình để ánh xạ danh sách ID của Categories từ ProductType sang ProductTypeDto
-                .ForMember(dto => dto.CategoryIds, opt => opt.MapFrom(pt => pt.Categories.Select(c => c.Id)));
 
             // Tạo ánh xạ từ ProductTypeDto sang Entity ProductType
             CreateMap<ProductTypeDto, ProductType>()

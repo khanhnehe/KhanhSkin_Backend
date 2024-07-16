@@ -16,6 +16,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using KhanhSkin_BackEnd.Services.Brands;
 using KhanhSkin_BackEnd.Services.ProductTypes;
+using KhanhSkin_BackEnd.Services.Categories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,6 +41,7 @@ builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<BrandService>();
 builder.Services.AddScoped<ProductTypeService>();
+builder.Services.AddScoped<CategoryService>();
 
 // Thêm hỗ trợ cho Controllers và API Endpoints
 builder.Services.AddControllers();

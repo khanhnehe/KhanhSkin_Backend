@@ -8,6 +8,5 @@ namespace KhanhSkin_BackEnd.Dtos.ProductType
         public string TypeName { get; set; }
 
         // Dùng để truyền danh sách ID của các Category mà ProductType này thuộc về
-        public List<int> CategoryIds { get; set; } = new List<int>();
     }
 }
