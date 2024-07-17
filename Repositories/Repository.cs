@@ -5,6 +5,8 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using KhanhSkin_BackEnd.Entities;
+using Microsoft.EntityFrameworkCore.Storage;
+using System.Data;
 
 namespace KhanhSkin_BackEnd.Repositories
 {
@@ -22,7 +24,8 @@ namespace KhanhSkin_BackEnd.Repositories
         }
 
         public AppDbContext Context => _context;  // Cung cấp quyền truy cập vào DbContext
-
+                                                  // Phương thức mới để bắt đầu một giao dịch với mức độ cô lập được chỉ định
+       
         public DbSet<TEntity> Table => _context.Set<TEntity>(); // Truy cập đến bảng tương ứng với TEntity trong cơ sở dữ liệu
 
         // Trả về một IQueryable cho TEntity, cho phép xây dựng các truy vấn LINQ trên DbSet
@@ -114,6 +117,12 @@ namespace KhanhSkin_BackEnd.Repositories
         public async Task<TEntity?> FirstOrDefault(Expression<Func<TEntity, bool>> predicate)
         {
             return await Table.FirstOrDefaultAsync(predicate);
+        }
+
+
+        public async Task<IDbContextTransaction> BeginTransactionAsync(IsolationLevel isolationLevel)
+        {
+            return await _context.Database.BeginTransactionAsync(isolationLevel);
         }
     }
 

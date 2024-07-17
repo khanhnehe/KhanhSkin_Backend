@@ -104,18 +104,20 @@ namespace KhanhSkin_BackEnd.Services
             return entity.Id;
         }
 
-        public virtual async Task<TEntity> Update(TCreateDto input)
+        public virtual async Task<TEntity> Update(Guid id, TCreateDto input)
         {
             try
             {
-                var entity = await _repository.GetAsync(input.Id.Value);
-                if (entity != null)
+                var entity = await _repository.GetAsync(id);
+                if (entity == null)
                 {
-                    _mapper.Map(input, entity);
-                    await _repository.UpdateAsync(entity);
-                    return entity;
+                    _logger.LogError("Entity with id {Id} not found", id);
+                    throw new KeyNotFoundException($"Entity with id {id} not found");
                 }
-                return null;
+
+                _mapper.Map(input, entity);
+                await _repository.UpdateAsync(entity);
+                return entity;
             }
             catch (Exception ex)
             {
@@ -123,6 +125,7 @@ namespace KhanhSkin_BackEnd.Services
                 throw;
             }
         }
+
 
         public virtual async Task<TEntity> Delete(Guid id)
         {

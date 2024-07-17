@@ -5,6 +5,8 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using KhanhSkin_BackEnd.Entities;
+using Microsoft.EntityFrameworkCore.Storage;
+using System.Data;
 
 namespace KhanhSkin_BackEnd.Repositories
 {
@@ -50,6 +52,9 @@ namespace KhanhSkin_BackEnd.Repositories
         Task SaveChangesAsync();
         // Lưu tất cả các thay đổi hiện có trong context đến cơ sở dữ liệu một cách bất đồng bộ.
 
+
+        // Thêm phương thức BeginTransactionAsync vào interface
+        Task<IDbContextTransaction> BeginTransactionAsync(IsolationLevel isolationLevel);
         IQueryable<TEntity> AsQueryableIncluding(params Expression<Func<TEntity, object>>[] propertySelectors);
         // Tạo một IQueryable cho TEntity và bao gồm các thuộc tính được chỉ định để tải sẵn (eager loading).
     }

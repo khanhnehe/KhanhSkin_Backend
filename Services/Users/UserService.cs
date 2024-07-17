@@ -46,7 +46,7 @@ namespace KhanhSkin_BackEnd.Services.Users
         }
 
         // kiểm tra email đã tồn tại
-        public async Task<bool> CheckEmailExists(string email)
+        public  async Task<bool> CheckEmailExists(string email)
         {
             return await _userRepository.AsQueryable().AnyAsync(u => u.Email == email);
         }
@@ -121,7 +121,7 @@ namespace KhanhSkin_BackEnd.Services.Users
         }
 
 
-        public async Task<UserDto> UpdateUser(Guid id, CreateUpdateUserDto input)
+        public override async Task<User> Update(Guid id, CreateUpdateUserDto input)
         {
             var user = await _userRepository.AsQueryable().IgnoreQueryFilters().FirstOrDefaultAsync(a => a.Id == id);
             if (user == null)
@@ -142,22 +142,32 @@ namespace KhanhSkin_BackEnd.Services.Users
             await _userRepository.UpdateAsync(user);
             await _userRepository.SaveChangesAsync();
 
-            return _mapper.Map<UserDto>(user);
+            return user; // Trả về đối tượng User sau khi đã cập nhật
         }
 
 
-        public async Task<bool> DeleteUser(Guid id)
+
+        public override async Task<User> Delete(Guid id)
         {
-            // Tìm người dùng bằng ID, bỏ qua các bộ lọc truy vấn (nếu có)
-            var user = await _userRepository.AsQueryable().IgnoreQueryFilters().FirstOrDefaultAsync(a => a.Id == id);
-            if (user == null)
+            try
             {
-                throw new ApiException("Không tìm thấy người dùng.");
+                // Tìm người dùng bằng ID, bỏ qua các bộ lọc truy vấn (nếu có)
+                var user = await _userRepository.AsQueryable().IgnoreQueryFilters().FirstOrDefaultAsync(a => a.Id == id);
+                if (user == null)
+                {
+                    throw new ApiException("Không tìm thấy người dùng.");
+                }
+
+                // Xóa người dùng và lưu thay đổi
+                await _userRepository.DeleteByEntityAsync(user);
+                return user;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting user: {UserId}", id);
+                throw;
             }
 
-            // Xóa người dùng và lưu thay đổi
-            await _userRepository.DeleteByEntityAsync(user);
-            return true;
         }
 
 

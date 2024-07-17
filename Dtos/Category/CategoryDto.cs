@@ -13,8 +13,7 @@ namespace KhanhSkin_BackEnd.Dtos.Category
         // Danh sách ID của ProductType liên quan đến Category này
         public List<Guid> ProductTypeIds { get; set; } = new List<Guid>();
 
-        // Danh sách ID của Product liên quan đến Category này
-        public List<Guid> ProductIds { get; set; } = new List<Guid>();
+        //public List<Guid> ProductIds { get; set; } = new List<Guid>();
 
         // Thêm thuộc tính này
         public List<ProductTypeDto> ProductTypes { get; set; } = new List<ProductTypeDto>();

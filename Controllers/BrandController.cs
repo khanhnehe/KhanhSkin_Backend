@@ -61,26 +61,29 @@ namespace KhanhSkin_BackEnd.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
-
         [Authorize(Roles = "Admin")]
         [HttpDelete("delete-brand/{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
             try
             {
-                var success = await _brandService.Delete(id);
-                if (success)
+                var brand = await _brandService.Delete(id);
+                if (brand != null)
                 {
-                    return Ok();
+                    return Ok("Đã xóa thương hiệu thành công"); // Trả về đối tượng Brand đã xóa
                 }
-                return NotFound();
+                return NotFound("Không tìm thấy thương hiệu để xóa.");
+            }
+            catch (ApiException ex)
+            {
+                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error deleting brand: {ex.Message}");
                 return StatusCode(500, "Internal server error");
             }
         }
+
 
         [HttpGet("get-all-brand")]
 

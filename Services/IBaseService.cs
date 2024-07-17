@@ -23,7 +23,7 @@ namespace KhanhSkin_BackEnd.Services
         //Task<PagedViewModel<TDto>> GetListPaged(TGetInput input);
 
         //cập nhật một thực thể từ DTO cập nhật
-        Task<TEntity> Update(TCreateDto input);
+        Task<TEntity> Update(Guid id, TCreateDto input);
 
         //lưu một thực thể, có thể dùng cho cả tạo mới và cập nhật
         Task<Guid> Save(TCreateDto input);

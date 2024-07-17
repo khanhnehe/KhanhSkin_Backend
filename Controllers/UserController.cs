@@ -106,7 +106,7 @@ namespace KhanhSkin_BackEnd.Controllers
         {
             try
             {
-                var updatedUser = await _userService.UpdateUser(id, input);
+                var updatedUser = await _userService.Update(id, input);
                 return Ok(updatedUser);
             }
             catch (ApiException ex)
@@ -126,8 +126,8 @@ namespace KhanhSkin_BackEnd.Controllers
         {
             try
             {
-                var result = await _userService.DeleteUser(id);
-                if (result)
+                var user = await _userService.Delete(id);
+                if (user !=null)
                 {
                     return Ok(new { message = "Người dùng đã được xóa thành công." });
                 }
@@ -175,10 +175,13 @@ namespace KhanhSkin_BackEnd.Controllers
 
                 return Ok(users);
             }
+            catch (ApiException ex)
+            {
+                throw new ApiException($"{ex.Message}");
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi khi lấy danh sách người dùng đã lọc.");
-                return StatusCode(500, "Có lỗi xảy ra khi lấy danh sách người dùng đã lọc.");
+                throw new ApiException($"Có lỗi xảy ra: {ex.Message}");
             }
         }
 

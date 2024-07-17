@@ -41,26 +41,22 @@ namespace KhanhSkin_BackEnd.Services.Brands
             return await _brandRepository.AsQueryable().AnyAsync(u => u.BrandName == brandName);
         }
 
-        public async Task<BrandDto> Create(BrandDto input)
+        public override async Task<Brand> Create(BrandDto input)
         {
             if (await CheckBrandExist(input.BrandName))
             {
                 throw new ApiException("Brand already exists.");
             }
 
-            // Sử dụng AutoMapper để chuyển đổi từ DTO (Data Transfer Object) sang entity Brand
             var brand = _mapper.Map<Brand>(input);
             await _brandRepository.CreateAsync(brand);
-
             await _brandRepository.SaveChangesAsync();
 
-            // Sau khi thương hiệu được tạo, chuyển đổi entity Brand trở lại thành DTO để trả về
-            var newBrand = _mapper.Map<BrandDto>(brand);
-
-            return newBrand;
+            return brand; // Trả về đối tượng Brand sau khi đã tạo
         }
 
-        public async Task<BrandDto> Update(Guid id, BrandDto input)
+
+        public override async Task<Brand> Update(Guid id, BrandDto input)
         {
             var brand = await _brandRepository.AsQueryable().IgnoreQueryFilters().FirstOrDefaultAsync(a => a.Id == id);
             if (brand == null)
@@ -68,7 +64,6 @@ namespace KhanhSkin_BackEnd.Services.Brands
                 throw new ApiException("Không tìm thấy người dùng.");
             }
 
-            // Kiểm tra xem email mới có khác với email hiện tại không và nếu có, kiểm tra xem nó đã được sử dụng bởi người dùng khác chưa
             if (!string.Equals(brand.BrandName, input.BrandName, StringComparison.OrdinalIgnoreCase) && await CheckBrandExist(input.BrandName))
             {
                 throw new ApiException("BrandName đã được sử dụng.");
@@ -76,23 +71,26 @@ namespace KhanhSkin_BackEnd.Services.Brands
 
             _mapper.Map(input, brand);
             await _brandRepository.UpdateAsync(brand);
-            return _mapper.Map<BrandDto>(brand);
+
+            return brand; // Trả về đối tượng Brand sau khi đã cập nhật
         }
 
-        public async Task<bool> Delete(Guid id)
+
+        public override async Task<Brand> Delete(Guid id)
         {
             var brand = await _brandRepository.AsQueryable().FirstOrDefaultAsync(a => a.Id == id);
             if (brand == null)
             {
-                throw new ApiException("Không tìm thấy thương hiệu."); // Hoặc sử dụng một ngoại lệ tùy chỉnh phù hợp với logic xử lý lỗi của bạn
+                throw new ApiException("Không tìm thấy thương hiệu.");
             }
 
             await _brandRepository.DeleteAsync(id);
-            return true; // Nếu không có lỗi, trả về true để báo hiệu việc xóa thành công
+
+            return brand; // Trả về đối tượng Brand sau khi đã xóa
         }
 
 
-        public async Task<List<BrandDto>> GetAll()
+        public override async Task<List<BrandDto>> GetAll()
         {
             var brands = await _brandRepository.GetAllListAsync();
             return _mapper.Map<List<BrandDto>>(brands);
