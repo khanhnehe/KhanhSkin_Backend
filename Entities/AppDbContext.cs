@@ -12,6 +12,7 @@ namespace KhanhSkin_BackEnd.Entities
         public DbSet<Review> Reviews { get; set; }
         public DbSet<ProductVariant> ProductVariants { get; set; }
         public DbSet<User> Users { get; set; } // Bổ sung DbSet cho User
+        public DbSet<Favorite> Favorites { get; set; } // Thêm DbSet cho Favorite
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
@@ -58,6 +59,13 @@ namespace KhanhSkin_BackEnd.Entities
                 .WithMany()
                 .HasForeignKey(r => r.ProductVariantId);
 
+
+            modelBuilder.Entity<User>()
+            .HasMany(u => u.Favorites) // Mỗi User có nhiều Favorites
+            .WithOne(f => f.User) // Mỗi Favorite thuộc về một User
+            .HasForeignKey(f => f.UserId); // Khóa ngoại trong Favorite liên kết với User
+
+                
             // Cấu hình mối quan hệ nhiều-nhiều giữa ProductType và Category
             // Sử dụng bảng liên kết tùy chỉnh "ProductTypeCategory"
             modelBuilder.Entity<ProductType>()

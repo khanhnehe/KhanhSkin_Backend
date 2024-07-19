@@ -3,7 +3,6 @@ using KhanhSkin_BackEnd.Dtos.Brand;
 using KhanhSkin_BackEnd.Entities;
 using KhanhSkin_BackEnd.Repositories;
 using KhanhSkin_BackEnd.Services.CurrentUser;
-using KhanhSkin_BackEnd.Services.Users;
 using KhanhSkin_BackEnd.Share.Dtos;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;

@@ -13,6 +13,8 @@ namespace KhanhSkin_BackEnd.Entities
         public int? DiscountVariant { get; set; }
         public decimal? SalePriceVariant { get; set; }
         public string SKUVariant { get; set; }
+        public string ImageUrl { get; set; }
+
 
         // Foreign key
         [ForeignKey("ProductId")]

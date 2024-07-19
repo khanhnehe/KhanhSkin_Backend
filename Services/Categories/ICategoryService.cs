@@ -7,7 +7,7 @@ namespace KhanhSkin_BackEnd.Services.Categories
 {
     public interface ICategoryService : IBaseService<Category, CategoryDto, CategoryDto, CategoryGetRequestInputDto>
     {
-        Task<CategoryDto> AddProductType(Guid categoryId, Guid productTypeId);
+        Task<CategoryDto> UpdateCategoryProductTypes(Guid categoryId, List<Guid> productTypeIds);
         // Bạn có thể thêm các phương thức khác tại đây nếu cần
     }
 }

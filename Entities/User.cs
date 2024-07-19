@@ -26,6 +26,8 @@ namespace KhanhSkin_BackEnd.Entities
 
         public string? Image { get; set; }
 
+        public ICollection<Favorite> Favorites { get; set; }
+
 
         public Enums.Role Role { get; set; } = Enums.Role.User;
 

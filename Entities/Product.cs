@@ -45,6 +45,6 @@ namespace KhanhSkin_BackEnd.Entities
 
         public decimal AverageRating { get; set; }
 
-        public ICollection<string> Images { get; set; } = new List<string>();
+        public IList<string> Images { get; set; } = new List<string>(); // Chuyển sang IList<string>
     }
 }

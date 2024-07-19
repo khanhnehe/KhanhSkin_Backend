@@ -17,6 +17,8 @@ using System.Text;
 using KhanhSkin_BackEnd.Services.Brands;
 using KhanhSkin_BackEnd.Services.ProductTypes;
 using KhanhSkin_BackEnd.Services.Categories;
+using KhanhSkin_BackEnd.Services.Products;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,6 +44,15 @@ builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<BrandService>();
 builder.Services.AddScoped<ProductTypeService>();
 builder.Services.AddScoped<CategoryService>();
+builder.Services.AddScoped<ProductService>();
+
+// Thêm hỗ trợ cho Controllers và API Endpoints với JSON serialization
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    options.JsonSerializerOptions.MaxDepth = 32; // Bạn có thể điều chỉnh giá trị này nếu cần thiết
+});
+
 
 // Thêm hỗ trợ cho Controllers và API Endpoints
 builder.Services.AddControllers();
