@@ -34,6 +34,7 @@ namespace KhanhSkin_BackEnd.Services.Products
 
             // Ánh xạ từ CreateUpdateProductDto sang Product
             CreateMap<CreateUpdateProductDto, Product>()
+                 .ForMember(dest => dest.Id, opt => opt.Ignore()) // Thêm dòng này để loại trừ Id
                 .ForMember(dest => dest.Variants, opt => opt.Ignore())
                 .ForMember(dest => dest.Categories, opt => opt.Ignore())
                 .ForMember(dest => dest.ProductTypes, opt => opt.Ignore())

@@ -103,59 +103,80 @@ namespace KhanhSkin_BackEnd.Services.Products
         }
 
         // Update Product
-        public async Task<Product> Update(CreateUpdateProductDto input)
+        public override async Task<Product> Update(Guid id, CreateUpdateProductDto input)
         {
-            var product = _mapper.Map<Product>(input);
-
-            // Kiểm tra sự tồn tại của sản phẩm với ID cụ thể
-            var existingProduct = await _productRepository.GetAsync(product.Id);
-            if (existingProduct != null)
+            var existingProduct = await _productRepository.AsQueryable().Include(p => p.Categories).Include(p => p.ProductTypes).FirstOrDefaultAsync(a => a.Id == id);
+            if (existingProduct == null)
             {
-                // Cập nhật sản phẩm hiện tại
-                existingProduct.ProductName = product.ProductName;
-                existingProduct.Description = product.Description;
-                existingProduct.Price = product.Price;
-                existingProduct.Quantity = product.Quantity;
-                existingProduct.Discount = product.Discount;
-                existingProduct.SalePrice = product.SalePrice;
-                existingProduct.SKU = product.SKU;
-                existingProduct.BrandId = product.BrandId;
-
-                // Cập nhật mối quan hệ nhiều-nhiều
-                existingProduct.Categories.Clear();
-                foreach (var categoryId in input.CategoryIds)
-                {
-                    var category = await _categoryRepository.GetAsync(categoryId);
-                    if (category == null)
-                    {
-                        throw new ApiException($"Không tìm thấy danh mục với id {categoryId}.");
-                    }
-                    existingProduct.Categories.Add(category);
-                }
-
-                existingProduct.ProductTypes.Clear();
-                foreach (var productTypeId in input.ProductTypeIds)
-                {
-                    var productType = await _productTypeRepository.GetAsync(productTypeId);
-                    if (productType == null)
-                    {
-                        throw new ApiException($"Không tìm thấy loại sản phẩm với id {productTypeId}.");
-                    }
-                    existingProduct.ProductTypes.Add(productType);
-                }
-
-                _productRepository.UpdateAsync(existingProduct);
-            }
-            else
-            {
-                // Thêm sản phẩm mới
-                await _productRepository.CreateAsync(product);
+                throw new ApiException($"Không tìm thấy sản phẩm với id {id}.");
             }
 
+            var brand = await _brandRepository.GetAsync(input.BrandId);
+            if (brand == null)
+            {
+                throw new ApiException($"Không tìm thấy thương hiệu với id {input.BrandId}.");
+            }
+            existingProduct.BrandId = input.BrandId;
+
+            _mapper.Map(input, existingProduct);
+
+            // Cập nhật mối quan hệ nhiều-nhiều cho Categories
+            var existingCategoryIds = existingProduct.Categories.Select(c => c.Id).ToList();
+            var newCategoryIds = input.CategoryIds.Except(existingCategoryIds).ToList();
+            var removedCategoryIds = existingCategoryIds.Except(input.CategoryIds).ToList();
+
+            foreach (var categoryId in removedCategoryIds)
+            {
+                var categoryToRemove = existingProduct.Categories.FirstOrDefault(c => c.Id == categoryId);
+                if (categoryToRemove != null)
+                {
+                    existingProduct.Categories.Remove(categoryToRemove);
+                }
+            }
+
+            foreach (var categoryId in newCategoryIds)
+            {
+                var category = await _categoryRepository.GetAsync(categoryId);
+                if (category == null)
+                {
+                    throw new ApiException($"Không tìm thấy danh mục với id {categoryId}.");
+                }
+                existingProduct.Categories.Add(category);
+            }
+
+            // Cập nhật mối quan hệ nhiều-nhiều cho ProductTypes
+            var existingProductTypeIds = existingProduct.ProductTypes.Select(pt => pt.Id).ToList();
+            var newProductTypeIds = input.ProductTypeIds.Except(existingProductTypeIds).ToList();
+            var removedProductTypeIds = existingProductTypeIds.Except(input.ProductTypeIds).ToList();
+
+            foreach (var productTypeId in removedProductTypeIds)
+            {
+                var productTypeToRemove = existingProduct.ProductTypes.FirstOrDefault(pt => pt.Id == productTypeId);
+                if (productTypeToRemove != null)
+                {
+                    existingProduct.ProductTypes.Remove(productTypeToRemove);
+                }
+            }
+
+            foreach (var productTypeId in newProductTypeIds)
+            {
+                var productType = await _productTypeRepository.GetAsync(productTypeId);
+                if (productType == null)
+                {
+                    throw new ApiException($"Không tìm thấy loại sản phẩm với id {productTypeId}.");
+                }
+                existingProduct.ProductTypes.Add(productType);
+            }
+
+            await _productRepository.UpdateAsync(existingProduct);
             await _productRepository.SaveChangesAsync();
 
-            return product;
+            return existingProduct;
         }
+
+
+
+
 
 
 
