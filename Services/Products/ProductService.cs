@@ -56,7 +56,23 @@ namespace KhanhSkin_BackEnd.Services.Products
                 throw new ApiException("Sản phẩm đã tồn tại.");
             }
 
+
+            if (await _productRepository.AsQueryable().AnyAsync(p => p.SKU == input.SKU))
+            {
+                throw new ApiException("SKU đã tồn tại.");
+            }
             var product = _mapper.Map<Product>(input);
+
+
+            // Tính toán SalePrice
+            if (product.Discount.HasValue && product.Discount.Value > 0 && product.Discount.Value <= 100)
+            {
+                product.SalePrice = product.Price - (product.Price * product.Discount.Value / 100);
+            }
+            else
+            {
+                product.SalePrice = product.Price;
+            }
 
             // Kiểm tra sự tồn tại của Brand
             var brand = await _brandRepository.GetAsync(input.BrandId);
@@ -102,13 +118,18 @@ namespace KhanhSkin_BackEnd.Services.Products
             return product;
         }
 
-        // Update Product
+        ///
         public override async Task<Product> Update(Guid id, CreateUpdateProductDto input)
         {
-            var existingProduct = await _productRepository.AsQueryable().Include(p => p.Categories).Include(p => p.ProductTypes).FirstOrDefaultAsync(a => a.Id == id);
-            if (existingProduct == null)
+            var product = await _productRepository.AsQueryable().Include(p => p.Categories).Include(p => p.ProductTypes).FirstOrDefaultAsync(a => a.Id == id);
+            if (product == null)
             {
                 throw new ApiException($"Không tìm thấy sản phẩm với id {id}.");
+            }
+
+            if (await _productRepository.AsQueryable().AnyAsync(p => p.SKU == input.SKU && p.Id != id))
+            {
+                throw new ApiException("SKU đã tồn tại.");
             }
 
             var brand = await _brandRepository.GetAsync(input.BrandId);
@@ -116,21 +137,31 @@ namespace KhanhSkin_BackEnd.Services.Products
             {
                 throw new ApiException($"Không tìm thấy thương hiệu với id {input.BrandId}.");
             }
-            existingProduct.BrandId = input.BrandId;
+            product.BrandId = input.BrandId;
 
-            _mapper.Map(input, existingProduct);
+            _mapper.Map(input, product);
+
+            // Tính toán SalePrice
+            if (product.Discount.HasValue && product.Discount.Value > 0 && product.Discount.Value <= 100)
+            {
+                product.SalePrice = product.Price - (product.Price * product.Discount.Value / 100);
+            }
+            else
+            {
+                product.SalePrice = product.Price;
+            }
 
             // Cập nhật mối quan hệ nhiều-nhiều cho Categories
-            var existingCategoryIds = existingProduct.Categories.Select(c => c.Id).ToList();
+            var existingCategoryIds = product.Categories.Select(c => c.Id).ToList();
             var newCategoryIds = input.CategoryIds.Except(existingCategoryIds).ToList();
             var removedCategoryIds = existingCategoryIds.Except(input.CategoryIds).ToList();
 
             foreach (var categoryId in removedCategoryIds)
             {
-                var categoryToRemove = existingProduct.Categories.FirstOrDefault(c => c.Id == categoryId);
+                var categoryToRemove = product.Categories.FirstOrDefault(c => c.Id == categoryId);
                 if (categoryToRemove != null)
                 {
-                    existingProduct.Categories.Remove(categoryToRemove);
+                    product.Categories.Remove(categoryToRemove);
                 }
             }
 
@@ -141,20 +172,20 @@ namespace KhanhSkin_BackEnd.Services.Products
                 {
                     throw new ApiException($"Không tìm thấy danh mục với id {categoryId}.");
                 }
-                existingProduct.Categories.Add(category);
+                product.Categories.Add(category);
             }
 
             // Cập nhật mối quan hệ nhiều-nhiều cho ProductTypes
-            var existingProductTypeIds = existingProduct.ProductTypes.Select(pt => pt.Id).ToList();
+            var existingProductTypeIds = product.ProductTypes.Select(pt => pt.Id).ToList();
             var newProductTypeIds = input.ProductTypeIds.Except(existingProductTypeIds).ToList();
             var removedProductTypeIds = existingProductTypeIds.Except(input.ProductTypeIds).ToList();
 
             foreach (var productTypeId in removedProductTypeIds)
             {
-                var productTypeToRemove = existingProduct.ProductTypes.FirstOrDefault(pt => pt.Id == productTypeId);
+                var productTypeToRemove = product.ProductTypes.FirstOrDefault(pt => pt.Id == productTypeId);
                 if (productTypeToRemove != null)
                 {
-                    existingProduct.ProductTypes.Remove(productTypeToRemove);
+                    product.ProductTypes.Remove(productTypeToRemove);
                 }
             }
 
@@ -165,51 +196,62 @@ namespace KhanhSkin_BackEnd.Services.Products
                 {
                     throw new ApiException($"Không tìm thấy loại sản phẩm với id {productTypeId}.");
                 }
-                existingProduct.ProductTypes.Add(productType);
+                product.ProductTypes.Add(productType);
             }
 
-            await _productRepository.UpdateAsync(existingProduct);
+            await _productRepository.UpdateAsync(product);
             await _productRepository.SaveChangesAsync();
 
-            return existingProduct;
+            return product;
         }
-
-
-
 
 
 
 
         public override async Task<Product> Delete(Guid id)
-                {
-                    var product = await _productRepository.AsQueryable().FirstOrDefaultAsync(p => p.Id == id);
-                    if (product == null)
-                    {
-                        throw new ApiException("Product not found.");
-                    }
-
-                    await _productRepository.DeleteAsync(id);
-
-                    return product;
-                }
-
-                public override async Task<List<ProductDto>> GetAll()
-                {
-                    var products = await _productRepository.GetAllListAsync();
-                    return _mapper.Map<List<ProductDto>>(products);
-                }
-
-                public override async Task<ProductDto> Get(Guid id)
-                {
-                    var product = await _productRepository.AsQueryable().FirstOrDefaultAsync(p => p.Id == id);
-                    if (product == null)
-                    {
-                        throw new ApiException("Product not found.");
-                    }
-
-                    return _mapper.Map<ProductDto>(product);
-                }
-
-       
+        {
+            var product = await _productRepository.AsQueryable().FirstOrDefaultAsync(p => p.Id == id);
+            if (product == null)
+            {
+                throw new ApiException("Product not found.");
             }
+
+            await _productRepository.DeleteAsync(id);
+
+            return product;
         }
+
+        public override async Task<List<ProductDto>> GetAll()
+        {
+            // Tải tất cả các sản phẩm cùng với các quan hệ liên quan
+            var products = await _productRepository.AsQueryable()
+                .Include(p => p.Brand)
+                .Include(p => p.Categories)
+                .Include(p => p.ProductTypes)
+                .ToListAsync();
+
+            // Ánh xạ các thực thể sang DTOs
+            return _mapper.Map<List<ProductDto>>(products);
+        }
+
+
+        public override async Task<ProductDto> Get(Guid id)
+        {
+            // Tải sản phẩm cùng với các quan hệ liên quan
+            var product = await _productRepository.AsQueryable()
+                .Include(p => p.Brand)
+                .Include(p => p.Categories)
+                .Include(p => p.ProductTypes)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (product == null)
+            {
+                throw new ApiException("Product not found.");
+            }
+
+            // Ánh xạ thực thể sang DTO
+            return _mapper.Map<ProductDto>(product);
+        }
+    }
+
+ }

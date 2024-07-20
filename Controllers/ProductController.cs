@@ -97,5 +97,26 @@ namespace KhanhSkin_BackEnd.Controllers
                 throw new ApiException($"Có lỗi xảy ra: {ex.Message}");
             }
         }
+
+        [HttpDelete("delete-product/{id}")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            try
+            {
+                var product = await _productService.Delete(id);
+                return Ok("Đã xóa sản phẩm thành công");
+            }
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, $"Failed to delete product with ID {id}: {ex.Message}");
+                return StatusCode(ex.StatusCode, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"An error occurred while deleting the product with ID {id}: {ex.Message}");
+                throw new ApiException($"Có lỗi xảy ra: {ex.Message}");
+            }
+        }
+
     }
 }

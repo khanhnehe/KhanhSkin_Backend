@@ -1,10 +1,12 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace KhanhSkin_BackEnd.Entities
 {
+    [Index(nameof(SKU), IsUnique = true)] 
     public class Product : BaseEntity
     {
         [Required(ErrorMessage = "Vui lòng nhập tên sản phẩm!")]
