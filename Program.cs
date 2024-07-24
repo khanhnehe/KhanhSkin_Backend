@@ -19,6 +19,7 @@ using KhanhSkin_BackEnd.Services.ProductTypes;
 using KhanhSkin_BackEnd.Services.Categories;
 using KhanhSkin_BackEnd.Services.Products;
 using System.Text.Json.Serialization;
+using KhanhSkin_BackEnd.Services.ProductVariants;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,6 +46,7 @@ builder.Services.AddScoped<BrandService>();
 builder.Services.AddScoped<ProductTypeService>();
 builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<ProductService>();
+builder.Services.AddScoped<ProductVariantService>();
 
 // Thêm hỗ trợ cho Controllers và API Endpoints với JSON serialization
 builder.Services.AddControllers().AddJsonOptions(options =>

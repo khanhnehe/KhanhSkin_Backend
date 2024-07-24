@@ -1,9 +1,9 @@
 ﻿using AutoMapper;
-using KhanhSkin_BackEnd.Dtos.Product;
-using KhanhSkin_BackEnd.Dtos.ProductVariant;
 using KhanhSkin_BackEnd.Dtos.Brand;
 using KhanhSkin_BackEnd.Dtos.Category;
+using KhanhSkin_BackEnd.Dtos.Product;
 using KhanhSkin_BackEnd.Dtos.ProductType;
+using KhanhSkin_BackEnd.Dtos.ProductVariant;
 using KhanhSkin_BackEnd.Entities;
 
 namespace KhanhSkin_BackEnd.Services.Products
@@ -17,8 +17,19 @@ namespace KhanhSkin_BackEnd.Services.Products
                 .ForMember(dest => dest.Brand, opt => opt.MapFrom(src => new BrandDto { Id = src.Brand.Id, BrandName = src.Brand.BrandName }))
                 .ForMember(dest => dest.Categories, opt => opt.MapFrom(src => src.Categories.Select(c => new CategoryDto { Id = c.Id, CategoryName = c.CategoryName }).ToList()))
                 .ForMember(dest => dest.ProductTypes, opt => opt.MapFrom(src => src.ProductTypes.Select(pt => new ProductTypeDto { Id = pt.Id, TypeName = pt.TypeName }).ToList()))
-                .ForMember(dest => dest.Variants, opt => opt.MapFrom(src => src.Variants))
-                .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.Images.ToList())); // Chuyển đổi Images sang IList<string>
+                .ForMember(dest => dest.Variants, opt => opt.MapFrom(src => src.Variants.Select(v => new ProductVariantDto
+                {
+                    Id = v.Id,
+                    NameVariant = v.NameVariant,
+                    PriceVariant = v.PriceVariant,
+                    QuantityVariant = v.QuantityVariant,
+                    DiscountVariant = v.DiscountVariant,
+                    SalePriceVariant = v.SalePriceVariant,
+                    SKUVariant = v.SKUVariant,
+                    ImageUrl = v.ImageUrl,
+                    ProductId = v.ProductId
+                }).ToList()))
+                .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.Images.ToList()));
 
             // Ánh xạ từ thực thể ProductVariant sang ProductVariantDto
             CreateMap<ProductVariant, ProductVariantDto>();
@@ -34,12 +45,16 @@ namespace KhanhSkin_BackEnd.Services.Products
 
             // Ánh xạ từ CreateUpdateProductDto sang Product
             CreateMap<CreateUpdateProductDto, Product>()
-                .ForMember(dest => dest.Id, opt => opt.Ignore()) // Thêm dòng này để loại trừ Id
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.Variants, opt => opt.Ignore())
                 .ForMember(dest => dest.Categories, opt => opt.Ignore())
                 .ForMember(dest => dest.ProductTypes, opt => opt.Ignore())
                 .ForMember(dest => dest.Brand, opt => opt.Ignore())
-                .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.Images.ToList())); // Chuyển đổi Images sang IList<string>
+                .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.Images.ToList()));
+
+            // Ánh xạ từ thực thể Product sang ProductSummaryDto
+            CreateMap<Product, ProductOutstandingDto>();
+                
         }
     }
 }

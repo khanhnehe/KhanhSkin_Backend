@@ -2,6 +2,7 @@
 using KhanhSkin_BackEnd.Dtos.Product;
 using KhanhSkin_BackEnd.Services.Products;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace KhanhSkin_BackEnd.Controllers
 {
@@ -114,6 +115,29 @@ namespace KhanhSkin_BackEnd.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"An error occurred while deleting the product with ID {id}: {ex.Message}");
+                throw new ApiException($"Có lỗi xảy ra: {ex.Message}");
+            }
+        }
+
+        [HttpPost("filter-products")]
+        public async Task<IActionResult> CreateFilteredQuery([FromQuery] ProductGetRequestInputDto input)
+        {
+            try
+            {
+                var query = _productService.CreateFilteredQuery(input);
+
+                var products = await query.ToListAsync();
+
+                return Ok(products);
+            }
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, $"Failed to filter products: {ex.Message}");
+                throw new ApiException(ex.Message, ex.StatusCode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"An error occurred while filtering products: {ex.Message}");
                 throw new ApiException($"Có lỗi xảy ra: {ex.Message}");
             }
         }
