@@ -11,8 +11,8 @@ namespace KhanhSkin_BackEnd.Entities
         public DbSet<Product> Products { get; set; }
         public DbSet<Review> Reviews { get; set; }
         public DbSet<ProductVariant> ProductVariants { get; set; }
-        public DbSet<User> Users { get; set; } // Bổ sung DbSet cho User
-        public DbSet<Favorite> Favorites { get; set; } // Thêm DbSet cho Favorite
+        public DbSet<User> Users { get; set; }
+        public DbSet<Favorite> Favorites { get; set; }
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
@@ -41,53 +41,57 @@ namespace KhanhSkin_BackEnd.Entities
                 .Property(pv => pv.SalePriceVariant)
                 .HasColumnType("decimal(18,2)");
 
-            // Thiết lập khóa ngoại và quan hệ giữa Product và ProductVariant
+            // Thiết lập khóa ngoại và quan hệ 1-n giữa Product và ProductVariant
             modelBuilder.Entity<Product>()
                 .HasMany(p => p.Variants)
                 .WithOne(v => v.Product)
                 .HasForeignKey(v => v.ProductId);
 
-            // Thiết lập khóa ngoại và quan hệ giữa Product và Review
+            // Thiết lập khóa ngoại và quan hệ 1-n giữa Product và Review
             modelBuilder.Entity<Product>()
                 .HasMany(p => p.Reviews)
                 .WithOne(r => r.Product)
                 .HasForeignKey(r => r.ProductId);
 
-            // Thiết lập khóa ngoại và quan hệ giữa Review và ProductVariant
-            modelBuilder.Entity<Review>()
-                .HasOne(r => r.ProductVariant)
-                .WithMany()
-                .HasForeignKey(r => r.ProductVariantId);
-
-
+            // Thiết lập khóa ngoại và quan hệ 1-n giữa User và Review
             modelBuilder.Entity<User>()
-            .HasMany(u => u.Favorites) // Mỗi User có nhiều Favorites
-            .WithOne(f => f.User) // Mỗi Favorite thuộc về một User
-            .HasForeignKey(f => f.UserId); // Khóa ngoại trong Favorite liên kết với User
+                .HasMany(u => u.Reviews)
+                .WithOne(r => r.User)
+                .HasForeignKey(r => r.UserId);
 
-                
-            // Cấu hình mối quan hệ nhiều-nhiều giữa ProductType và Category
-            // Sử dụng bảng liên kết tùy chỉnh "ProductTypeCategory"
+            // Thiết lập khóa ngoại và quan hệ 1-n giữa User và Favorite
+            modelBuilder.Entity<User>()
+                .HasMany(u => u.Favorites)
+                .WithOne(f => f.User)
+                .HasForeignKey(f => f.UserId);
+
+            // Thiết lập khóa ngoại và quan hệ 1-n giữa Product và Favorite
+            modelBuilder.Entity<Product>()
+                .HasMany(p => p.Favorites)
+                .WithOne(f => f.Product)
+                .HasForeignKey(f => f.ProductId);
+
+            // Thiết lập bảng nối nhiều-nhiều giữa ProductType và Category
             modelBuilder.Entity<ProductType>()
                 .HasMany(pt => pt.Categories)
                 .WithMany(c => c.ProductTypes)
                 .UsingEntity<Dictionary<string, object>>(
-                    "ProductTypeCategory", // Tên bảng liên kết
+                    "ProductTypeCategory",
                     j => j
                         .HasOne<Category>()
                         .WithMany()
-                        .HasForeignKey("CategoryId") // Khóa ngoại liên kết đến Category
+                        .HasForeignKey("CategoryId")
                         .HasConstraintName("FK_ProductTypeCategory_Categories_CategoryId")
                         .OnDelete(DeleteBehavior.Cascade),
                     j => j
                         .HasOne<ProductType>()
                         .WithMany()
-                        .HasForeignKey("ProductTypeId") // Khóa ngoại liên kết đến ProductType
+                        .HasForeignKey("ProductTypeId")
                         .HasConstraintName("FK_ProductTypeCategory_ProductTypes_ProductTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
                 );
 
-            // Thiết lập bảng nối giữa Product và Category
+            // Thiết lập bảng nối nhiều-nhiều giữa Product và Category
             modelBuilder.Entity<Product>()
                 .HasMany(p => p.Categories)
                 .WithMany(c => c.Products)
@@ -107,9 +111,31 @@ namespace KhanhSkin_BackEnd.Entities
                         .OnDelete(DeleteBehavior.Cascade)
                 );
 
-            // Thiết lập bảng nối giữa Product và ProductType
-            // Đã được thay thế bởi cấu hình mối quan hệ nhiều-nhiều giữa ProductType và Category ở trên
-            // Cấu hình này không còn cần thiết và có thể bỏ qua
+            // Thiết lập bảng nối nhiều-nhiều giữa Product và ProductType
+            modelBuilder.Entity<Product>()
+                .HasMany(p => p.ProductTypes)
+                .WithMany(pt => pt.Products)
+                .UsingEntity<Dictionary<string, object>>(
+                    "ProductProductType",
+                    j => j
+                        .HasOne<ProductType>()
+                        .WithMany()
+                        .HasForeignKey("ProductTypeId") // Sử dụng ProductTypeId thay vì ProductTypesId
+                        .HasConstraintName("FK_ProductProductType_ProductTypes_ProductTypeId")
+                        .OnDelete(DeleteBehavior.Cascade),
+                    j => j
+                        .HasOne<Product>()
+                        .WithMany()
+                        .HasForeignKey("ProductId") // Sử dụng ProductId thay vì ProductsId
+                        .HasConstraintName("FK_ProductProductType_Products_ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                );
+
+            // Thiết lập mối quan hệ 1-n giữa Brand và Product
+            modelBuilder.Entity<Brand>()
+                .HasMany(b => b.Products)
+                .WithOne(p => p.Brand)
+                .HasForeignKey(p => p.BrandId);
         }
     }
 }

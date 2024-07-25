@@ -19,8 +19,6 @@ namespace KhanhSkin_BackEnd.Entities
         [ForeignKey("ProductId")]
         public Product Product { get; set; }
 
-        public Guid? ProductVariantId { get; set; }
-        [ForeignKey("ProductVariantId")]
-        public ProductVariant ProductVariant { get; set; }
+        
     }
 }

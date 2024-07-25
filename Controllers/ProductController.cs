@@ -142,5 +142,80 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+        [HttpGet("search-product")]
+        public async Task<IActionResult> Search([FromQuery] string keyword)
+        {
+            try
+            {
+                var results = await _productService.Search(keyword);
+                return Ok(results);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error searching brands: {ex.Message}");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpGet("get-by-category/{categoryId}")]
+        public async Task<IActionResult> GetByCategory(Guid categoryId)
+        {
+            try
+            {
+                var products = await _productService.GetByCategory(categoryId);
+                return Ok(products);
+            }
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, $"Failed to fetch products by category ID {categoryId}: {ex.Message}");
+                throw new ApiException(ex.Message, ex.StatusCode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"An unexpected error occurred while fetching products by category ID {categoryId}.");
+                throw new ApiException($"Có lỗi xảy ra: {ex.Message}");
+            }
+        }
+
+        [HttpGet("get-by-producttype/{productTypeId}")]
+        public async Task<IActionResult> GetByProductType(Guid productTypeId)
+        {
+            try
+            {
+                var products = await _productService.GetByProductType(productTypeId);
+                return Ok(products);
+            }
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, $"Failed to fetch products by product type ID {productTypeId}: {ex.Message}");
+                throw new ApiException(ex.Message, ex.StatusCode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"An unexpected error occurred while fetching products by product type ID {productTypeId}.");
+                throw new ApiException($"Có lỗi xảy ra: {ex.Message}");
+            }
+        }
+
+        [HttpGet("get-by-brand/{brandId}")]
+        public async Task<IActionResult> GetByBrand(Guid brandId)
+        {
+            try
+            {
+                var products = await _productService.GetByBrand(brandId);
+                return Ok(products);
+            }
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, $"Failed to fetch products by brand ID {brandId}: {ex.Message}");
+                throw new ApiException(ex.Message, ex.StatusCode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"An unexpected error occurred while fetching products by brand ID {brandId}.");
+                throw new ApiException($"Có lỗi xảy ra: {ex.Message}");
+            }
+        }
+
     }
 }

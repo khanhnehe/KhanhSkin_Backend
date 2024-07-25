@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace KhanhSkin_BackEnd.Migrations
 {
     /// <inheritdoc />
-    public partial class Migrations : Migration
+    public partial class migrations : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -76,7 +76,7 @@ namespace KhanhSkin_BackEnd.Migrations
                     Quantity = table.Column<int>(type: "int", nullable: false),
                     Discount = table.Column<int>(type: "int", nullable: true),
                     SalePrice = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    SKU = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    SKU = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     BrandId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Purchases = table.Column<int>(type: "int", nullable: false),
                     AverageRating = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
@@ -118,6 +118,31 @@ namespace KhanhSkin_BackEnd.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Favorites",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ProductId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Favorites", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Favorites_Products_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "Products",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Favorites_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ProductCategory",
                 columns: table => new
                 {
@@ -145,21 +170,21 @@ namespace KhanhSkin_BackEnd.Migrations
                 name: "ProductProductType",
                 columns: table => new
                 {
-                    ProductTypesId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ProductsId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    ProductId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ProductTypeId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ProductProductType", x => new { x.ProductTypesId, x.ProductsId });
+                    table.PrimaryKey("PK_ProductProductType", x => new { x.ProductId, x.ProductTypeId });
                     table.ForeignKey(
-                        name: "FK_ProductProductType_ProductTypes_ProductTypesId",
-                        column: x => x.ProductTypesId,
+                        name: "FK_ProductProductType_ProductTypes_ProductTypeId",
+                        column: x => x.ProductTypeId,
                         principalTable: "ProductTypes",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_ProductProductType_Products_ProductsId",
-                        column: x => x.ProductsId,
+                        name: "FK_ProductProductType_Products_ProductId",
+                        column: x => x.ProductId,
                         principalTable: "Products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -176,6 +201,7 @@ namespace KhanhSkin_BackEnd.Migrations
                     DiscountVariant = table.Column<int>(type: "int", nullable: true),
                     SalePriceVariant = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     SKUVariant = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ImageUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ProductId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
@@ -197,17 +223,11 @@ namespace KhanhSkin_BackEnd.Migrations
                     Rating = table.Column<int>(type: "int", nullable: false),
                     Comment = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ProductId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ProductVariantId = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
+                    ProductId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Reviews", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Reviews_ProductVariants_ProductVariantId",
-                        column: x => x.ProductVariantId,
-                        principalTable: "ProductVariants",
-                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Reviews_Products_ProductId",
                         column: x => x.ProductId,
@@ -223,19 +243,35 @@ namespace KhanhSkin_BackEnd.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_Favorites_ProductId",
+                table: "Favorites",
+                column: "ProductId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Favorites_UserId",
+                table: "Favorites",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ProductCategory_ProductId",
                 table: "ProductCategory",
                 column: "ProductId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProductProductType_ProductsId",
+                name: "IX_ProductProductType_ProductTypeId",
                 table: "ProductProductType",
-                column: "ProductsId");
+                column: "ProductTypeId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Products_BrandId",
                 table: "Products",
                 column: "BrandId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Products_SKU",
+                table: "Products",
+                column: "SKU",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_ProductTypeCategory_ProductTypeId",
@@ -253,11 +289,6 @@ namespace KhanhSkin_BackEnd.Migrations
                 column: "ProductId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Reviews_ProductVariantId",
-                table: "Reviews",
-                column: "ProductVariantId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Reviews_UserId",
                 table: "Reviews",
                 column: "UserId");
@@ -267,6 +298,9 @@ namespace KhanhSkin_BackEnd.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "Favorites");
+
+            migrationBuilder.DropTable(
                 name: "ProductCategory");
 
             migrationBuilder.DropTable(
@@ -274,6 +308,9 @@ namespace KhanhSkin_BackEnd.Migrations
 
             migrationBuilder.DropTable(
                 name: "ProductTypeCategory");
+
+            migrationBuilder.DropTable(
+                name: "ProductVariants");
 
             migrationBuilder.DropTable(
                 name: "Reviews");
@@ -285,13 +322,10 @@ namespace KhanhSkin_BackEnd.Migrations
                 name: "ProductTypes");
 
             migrationBuilder.DropTable(
-                name: "ProductVariants");
+                name: "Products");
 
             migrationBuilder.DropTable(
                 name: "Users");
-
-            migrationBuilder.DropTable(
-                name: "Products");
 
             migrationBuilder.DropTable(
                 name: "Brands");

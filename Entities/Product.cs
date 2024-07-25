@@ -1,12 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace KhanhSkin_BackEnd.Entities
 {
-    [Index(nameof(SKU), IsUnique = true)] 
+    [Index(nameof(SKU), IsUnique = true)]
     public class Product : BaseEntity
     {
         [Required(ErrorMessage = "Vui lòng nhập tên sản phẩm!")]
@@ -44,6 +44,8 @@ namespace KhanhSkin_BackEnd.Entities
         public int Purchases { get; set; }
 
         public ICollection<Review> Reviews { get; set; } = new List<Review>();
+
+        public ICollection<Favorite> Favorites { get; set; } = new List<Favorite>(); // Thêm thuộc tính Favorites
 
         public decimal AverageRating { get; set; }
 

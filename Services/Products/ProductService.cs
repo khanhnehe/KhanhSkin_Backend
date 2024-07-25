@@ -110,13 +110,6 @@ namespace KhanhSkin_BackEnd.Services.Products
                 product.ProductTypes.Add(productType); // Thêm ProductType vào danh sách của sản phẩm
             }
 
-            // Kiểm tra sự tồn tại của sản phẩm với ID cụ thể
-            var existingProduct = await _productRepository.GetAsync(product.Id);
-            if (existingProduct != null)
-            {
-                throw new ApiException($"Sản phẩm đã tồn tại."); // Ném ngoại lệ nếu sản phẩm với ID này đã tồn tại
-            }
-
             // Tạo mới sản phẩm trong cơ sở dữ liệu
             await _productRepository.CreateAsync(product);
             await _productRepository.SaveChangesAsync();
@@ -124,7 +117,6 @@ namespace KhanhSkin_BackEnd.Services.Products
             return product; // Trả về sản phẩm vừa tạo
         }
 
-        ///
         public override async Task<Product> Update(Guid id, CreateUpdateProductDto input)
         {
             // Tìm sản phẩm theo ID
@@ -225,7 +217,6 @@ namespace KhanhSkin_BackEnd.Services.Products
 
 
 
-
         public override async Task<Product> Delete(Guid id)
         {
             var product = await _productRepository.AsQueryable().FirstOrDefaultAsync(p => p.Id == id);
@@ -241,7 +232,6 @@ namespace KhanhSkin_BackEnd.Services.Products
 
         public override async Task<List<ProductDto>> GetAll()
         {
-            // Tải tất cả các sản phẩm cùng với các quan hệ liên quan
             var products = await _productRepository.AsQueryable()
                 .Include(p => p.Brand)
                 .Include(p => p.Categories)
@@ -249,14 +239,12 @@ namespace KhanhSkin_BackEnd.Services.Products
                 .Include(p => p.Variants)
                 .ToListAsync();
 
-            // Ánh xạ các thực thể sang DTOs
             return _mapper.Map<List<ProductDto>>(products);
         }
 
 
         public override async Task<ProductDto> Get(Guid id)
         {
-            // Tải sản phẩm cùng với các quan hệ liên quan
             var product = await _productRepository.AsQueryable()
                 .Include(p => p.Brand)
                 .Include(p => p.Categories)
@@ -269,7 +257,6 @@ namespace KhanhSkin_BackEnd.Services.Products
                 throw new ApiException("Product not found.");
             }
 
-            // Ánh xạ thực thể sang DTO
             return _mapper.Map<ProductDto>(product);
         }
 
@@ -312,6 +299,59 @@ namespace KhanhSkin_BackEnd.Services.Products
 
 
 
+        public async Task<List<ProductOutstandingDto>> Search(string keyword)
+        {
+            var products = await _productRepository
+                .AsQueryable()
+                .Where(p => p.ProductName.Contains(keyword) || p.SKU.Contains(keyword))
+                .Include(p => p.Brand)
+                .Include(p => p.Categories)
+                .Include(p => p.ProductTypes)
+                .Include(p => p.Variants)
+                .ToListAsync();
+
+            return _mapper.Map<List<ProductOutstandingDto>>(products);
+        }
+
+
+        public async Task<List<ProductOutstandingDto>> GetByCategory(Guid categoryId)
+        {
+            var products = await _productRepository.AsQueryable()
+                .Where(p => p.Categories.Any(c => c.Id == categoryId))
+                .Include(p => p.Brand)
+                .Include(p => p.Categories)
+                .Include(p => p.ProductTypes)
+                .Include(p => p.Variants)
+                .ToListAsync();
+
+            return _mapper.Map<List<ProductOutstandingDto>>(products);
+        }
+
+        public async Task<List<ProductOutstandingDto>> GetByProductType(Guid productTypeId)
+        {
+            var products = await _productRepository.AsQueryable()
+                .Where(p => p.ProductTypes.Any(pt => pt.Id == productTypeId))
+                .Include(p => p.Brand)
+                .Include(p => p.Categories)
+                .Include(p => p.ProductTypes)
+                .Include(p => p.Variants)
+                .ToListAsync();
+
+            return _mapper.Map<List<ProductOutstandingDto>>(products);
+        }
+
+        public async Task<List<ProductOutstandingDto>> GetByBrand(Guid brandId)
+        {
+            var products = await _productRepository.AsQueryable()
+                .Where(p => p.BrandId == brandId)
+                .Include(p => p.Brand)
+                .Include(p => p.Categories)
+                .Include(p => p.ProductTypes)
+                .Include(p => p.Variants)
+                .ToListAsync();
+
+            return _mapper.Map<List<ProductOutstandingDto>>(products);
+        }
     }
 
 }

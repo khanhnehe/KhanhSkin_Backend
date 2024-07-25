@@ -194,9 +194,6 @@ namespace KhanhSkin_BackEnd.Migrations
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("ProductVariantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<int>("Rating")
                         .HasColumnType("int");
 
@@ -206,8 +203,6 @@ namespace KhanhSkin_BackEnd.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ProductId");
-
-                    b.HasIndex("ProductVariantId");
 
                     b.HasIndex("UserId");
 
@@ -267,15 +262,15 @@ namespace KhanhSkin_BackEnd.Migrations
 
             modelBuilder.Entity("ProductProductType", b =>
                 {
-                    b.Property<Guid>("ProductTypesId")
+                    b.Property<Guid>("ProductId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("ProductsId")
+                    b.Property<Guid>("ProductTypeId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.HasKey("ProductTypesId", "ProductsId");
+                    b.HasKey("ProductId", "ProductTypeId");
 
-                    b.HasIndex("ProductsId");
+                    b.HasIndex("ProductTypeId");
 
                     b.ToTable("ProductProductType");
                 });
@@ -298,7 +293,7 @@ namespace KhanhSkin_BackEnd.Migrations
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Favorite", b =>
                 {
                     b.HasOne("KhanhSkin_BackEnd.Entities.Product", "Product")
-                        .WithMany()
+                        .WithMany("Favorites")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -344,19 +339,13 @@ namespace KhanhSkin_BackEnd.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("KhanhSkin_BackEnd.Entities.ProductVariant", "ProductVariant")
-                        .WithMany()
-                        .HasForeignKey("ProductVariantId");
-
                     b.HasOne("KhanhSkin_BackEnd.Entities.User", "User")
-                        .WithMany()
+                        .WithMany("Reviews")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Product");
-
-                    b.Navigation("ProductVariant");
 
                     b.Navigation("User");
                 });
@@ -380,17 +369,19 @@ namespace KhanhSkin_BackEnd.Migrations
 
             modelBuilder.Entity("ProductProductType", b =>
                 {
-                    b.HasOne("KhanhSkin_BackEnd.Entities.ProductType", null)
-                        .WithMany()
-                        .HasForeignKey("ProductTypesId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("KhanhSkin_BackEnd.Entities.Product", null)
                         .WithMany()
-                        .HasForeignKey("ProductsId")
+                        .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK_ProductProductType_Products_ProductId");
+
+                    b.HasOne("KhanhSkin_BackEnd.Entities.ProductType", null)
+                        .WithMany()
+                        .HasForeignKey("ProductTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_ProductProductType_ProductTypes_ProductTypeId");
                 });
 
             modelBuilder.Entity("ProductTypeCategory", b =>
@@ -417,6 +408,8 @@ namespace KhanhSkin_BackEnd.Migrations
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Product", b =>
                 {
+                    b.Navigation("Favorites");
+
                     b.Navigation("Reviews");
 
                     b.Navigation("Variants");
@@ -425,6 +418,8 @@ namespace KhanhSkin_BackEnd.Migrations
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.User", b =>
                 {
                     b.Navigation("Favorites");
+
+                    b.Navigation("Reviews");
                 });
 #pragma warning restore 612, 618
         }

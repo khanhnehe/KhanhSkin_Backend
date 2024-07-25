@@ -34,12 +34,25 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
 // Cấu hình AutoMapper để ánh xạ đối tượng DTO
-builder.Services.AddAutoMapper(typeof(UserAutoMapperProfile));
+
+// Cấu hình AutoMapper để ánh xạ đối tượng DTO
+builder.Services.AddAutoMapper(
+    typeof(UserAutoMapperProfile),
+    typeof(ProductAutoMapperProfile),
+    typeof(BrandAutoMapperProfile),
+    typeof(CategoryAutoMapperProfile),
+    typeof(ProductTypeAutoMapperProfile),
+    typeof(ProductVariantAutoMapperProfile)
+);
 
 // Đăng ký Repository và Services cho Dependency Injection
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IRepository<User>, Repository<User>>();
 builder.Services.AddScoped<IRepository<Brand>, Repository<Brand>>();
+builder.Services.AddScoped<IRepository<Category>, Repository<Category>>();
+builder.Services.AddScoped<IRepository<ProductType>, Repository<ProductType>>();
+builder.Services.AddScoped<IRepository<Product>, Repository<Product>>();
+builder.Services.AddScoped<IRepository<ProductVariant>, Repository<ProductVariant>>();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<BrandService>();
