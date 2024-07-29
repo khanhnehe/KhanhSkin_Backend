@@ -4,7 +4,6 @@ using KhanhSkin_BackEnd.Services.Brands;
 using KhanhSkin_BackEnd.Services.ProductTypes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using AutoWrapper.Wrappers;
 using KhanhSkin_BackEnd.Dtos.ProductType;
 
 namespace KhanhSkin_BackEnd.Controllers

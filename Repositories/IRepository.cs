@@ -33,7 +33,7 @@ namespace KhanhSkin_BackEnd.Repositories
         Task<TEntity> DeleteByEntityAsync(TEntity entity);
 
 
-        Task<TEntity> FirstOrDefault(Expression<Func<TEntity, bool>> predicate);
+        Task<TEntity?> FirstOrDefault(Expression<Func<TEntity, bool>> predicate);
         // Tìm thực thể đầu tiên phù hợp với điều kiện chỉ định hoặc trả về null nếu không tìm thấy.
 
         Task<List<TEntity>> GetAllListAsync();

@@ -13,6 +13,8 @@ namespace KhanhSkin_BackEnd.Entities
         public DbSet<ProductVariant> ProductVariants { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<Favorite> Favorites { get; set; }
+        public DbSet<Cart> Carts { get; set; }
+        public DbSet<CartItem> CartItems { get; set; }
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
@@ -20,7 +22,7 @@ namespace KhanhSkin_BackEnd.Entities
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Thiết lập kiểu dữ liệu cho các thuộc tính decimal
+            // Thiết lập kiểu dữ liệu cho các thuộc tính decimal trong Product
             modelBuilder.Entity<Product>()
                 .Property(p => p.Price)
                 .HasColumnType("decimal(18,2)");
@@ -33,12 +35,31 @@ namespace KhanhSkin_BackEnd.Entities
                 .Property(p => p.AverageRating)
                 .HasColumnType("decimal(18,2)");
 
+            // Thiết lập kiểu dữ liệu cho các thuộc tính decimal trong ProductVariant
             modelBuilder.Entity<ProductVariant>()
                 .Property(pv => pv.PriceVariant)
                 .HasColumnType("decimal(18,2)");
 
             modelBuilder.Entity<ProductVariant>()
                 .Property(pv => pv.SalePriceVariant)
+                .HasColumnType("decimal(18,2)");
+
+            // Thiết lập kiểu dữ liệu cho các thuộc tính decimal trong Cart
+            modelBuilder.Entity<Cart>()
+                .Property(c => c.TotalPrice)
+                .HasColumnType("decimal(18,2)");
+
+            // Thiết lập kiểu dữ liệu cho các thuộc tính decimal trong CartItem
+            modelBuilder.Entity<CartItem>()
+                .Property(ci => ci.ProductPrice)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<CartItem>()
+                .Property(ci => ci.ProductSalePrice)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<CartItem>()
+                .Property(ci => ci.ItemsPrice)
                 .HasColumnType("decimal(18,2)");
 
             // Thiết lập khóa ngoại và quan hệ 1-n giữa Product và ProductVariant
@@ -136,6 +157,35 @@ namespace KhanhSkin_BackEnd.Entities
                 .HasMany(b => b.Products)
                 .WithOne(p => p.Brand)
                 .HasForeignKey(p => p.BrandId);
+
+            // Thiết lập mối quan hệ 1-1 giữa User và Cart
+            modelBuilder.Entity<User>()
+                .HasOne(u => u.Cart)
+                .WithOne(c => c.User)
+                .HasForeignKey<Cart>(c => c.UserId);
+
+            // Thiết lập mối quan hệ 1-n giữa Cart và CartItem
+            modelBuilder.Entity<Cart>()
+                .HasMany(c => c.CartItems)
+                .WithOne(ci => ci.Cart)
+                .HasForeignKey(ci => ci.CartId);
+
+            // Thiết lập mối quan hệ 1-n giữa Product và CartItem
+            modelBuilder.Entity<Product>()
+                .HasMany(p => p.CartItems)
+                .WithOne(ci => ci.Product)
+                .HasForeignKey(ci => ci.ProductId);
+
+            // Thiết lập mối quan hệ 1-n giữa ProductVariant và CartItem
+            modelBuilder.Entity<ProductVariant>()
+                .HasMany(v => v.CartItems)
+                .WithOne(ci => ci.Variant)
+                .HasForeignKey(ci => ci.VariantId);
+
+            // Thiết lập chỉ số unique cho CartItem
+            modelBuilder.Entity<CartItem>()
+                .HasIndex(ci => new { ci.CartId, ci.ProductId, ci.VariantId })
+                .IsUnique();
         }
     }
 }

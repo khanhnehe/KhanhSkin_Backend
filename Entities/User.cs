@@ -26,5 +26,8 @@ namespace KhanhSkin_BackEnd.Entities
         public ICollection<Review> Reviews { get; set; } = new List<Review>(); // Thêm thuộc tính Reviews
 
         public Enums.Role Role { get; set; } = Enums.Role.User;
+
+        public Cart Cart { get; set; } // Thêm thuộc tính giỏ hàng
+
     }
 }

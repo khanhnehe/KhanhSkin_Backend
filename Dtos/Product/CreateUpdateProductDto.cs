@@ -1,4 +1,5 @@
-﻿using KhanhSkin_BackEnd.Share.Dtos;
+﻿using KhanhSkin_BackEnd.Dtos.ProductVariant;
+using KhanhSkin_BackEnd.Share.Dtos;
 using System.ComponentModel.DataAnnotations;
 
 namespace KhanhSkin_BackEnd.Dtos.Product
@@ -34,5 +35,8 @@ namespace KhanhSkin_BackEnd.Dtos.Product
         [Required(ErrorMessage = "Vui lòng chọn phân loại sản phẩm!")]
         public ICollection<Guid> ProductTypeIds { get; set; } = new List<Guid>();
         public IList<string> Images { get; set; } = new List<string>(); // Chuyển sang IList<string>
+
+        // Thêm thuộc tính Variants
+        public List<ProductVariantDto> Variants { get; set; } = new List<ProductVariantDto>();
     }
 }

@@ -20,6 +20,8 @@ using KhanhSkin_BackEnd.Services.Categories;
 using KhanhSkin_BackEnd.Services.Products;
 using System.Text.Json.Serialization;
 using KhanhSkin_BackEnd.Services.ProductVariants;
+using KhanhSkin_BackEnd.Services.Carts;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,7 +44,9 @@ builder.Services.AddAutoMapper(
     typeof(BrandAutoMapperProfile),
     typeof(CategoryAutoMapperProfile),
     typeof(ProductTypeAutoMapperProfile),
-    typeof(ProductVariantAutoMapperProfile)
+    typeof(ProductVariantAutoMapperProfile),
+    typeof(CartAutoMapperProfile) 
+
 );
 
 // Đăng ký Repository và Services cho Dependency Injection
@@ -54,12 +58,15 @@ builder.Services.AddScoped<IRepository<ProductType>, Repository<ProductType>>();
 builder.Services.AddScoped<IRepository<Product>, Repository<Product>>();
 builder.Services.AddScoped<IRepository<ProductVariant>, Repository<ProductVariant>>();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+builder.Services.AddScoped<IRepository<Cart>, Repository<Cart>>();
+builder.Services.AddScoped<IRepository<CartItem>, Repository<CartItem>>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<BrandService>();
 builder.Services.AddScoped<ProductTypeService>();
 builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<ProductVariantService>();
+builder.Services.AddScoped<CartService>();
 
 // Thêm hỗ trợ cho Controllers và API Endpoints với JSON serialization
 builder.Services.AddControllers().AddJsonOptions(options =>
@@ -130,7 +137,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             // Định nghĩa người nhận token hợp lệ
             ValidAudience = jwtSettings["Audience"],
             // Định nghĩa khóa bí mật dùng để ký token
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"])),
+            NameClaimType = ClaimTypes.NameIdentifier // Đảm bảo sử dụng NameIdentifier claim
+
         };
     });
 

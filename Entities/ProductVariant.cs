@@ -20,5 +20,8 @@ namespace KhanhSkin_BackEnd.Entities
         [ForeignKey("ProductId")]
         public Guid ProductId { get; set; }
         public Product Product { get; set; }
+
+        public ICollection<CartItem> CartItems { get; set; } = new List<CartItem>(); // Thêm thuộc tính CartItems
+
     }
 }

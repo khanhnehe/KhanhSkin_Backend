@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using KhanhSkin_BackEnd.Dtos.ProductVariant; // Assuming you have a separate DTO for ProductVariant
-using KhanhSkin_BackEnd.Dtos.Brand; // Assuming you have a DTO for Brand
-using KhanhSkin_BackEnd.Dtos.Category; // Assuming you have a DTO for Category
-using KhanhSkin_BackEnd.Dtos.ProductType; // Assuming you have a DTO for ProductType
+using KhanhSkin_BackEnd.Dtos.ProductVariant; 
+using KhanhSkin_BackEnd.Dtos.Brand; 
+using KhanhSkin_BackEnd.Dtos.Category; 
+using KhanhSkin_BackEnd.Dtos.ProductType;
 using KhanhSkin_BackEnd.Share.Dtos;
 
 namespace KhanhSkin_BackEnd.Dtos.Product

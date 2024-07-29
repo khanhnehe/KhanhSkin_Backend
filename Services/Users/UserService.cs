@@ -195,12 +195,12 @@ namespace KhanhSkin_BackEnd.Services.Users
         private string GenerateJWT(User user)
         {
             var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role.ToString()), // Chuyển đổi Role sang string
-                new Claim("Id", user.Id.ToString()),
-                new Claim("FullName", user.FullName ?? string.Empty),
-            };
+    {
+        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()), // Thêm NameIdentifier claim
+        new Claim(ClaimTypes.Email, user.Email),
+        new Claim(ClaimTypes.Role, user.Role.ToString()), // Chuyển đổi Role sang string
+        new Claim("FullName", user.FullName ?? string.Empty),
+    };
 
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
@@ -216,6 +216,7 @@ namespace KhanhSkin_BackEnd.Services.Users
             var stringToken = tokenHandler.WriteToken(token);
             return stringToken;
         }
+
 
 
         public override IQueryable<User> CreateFilteredQuery(UserGetRequestInputDto input)
