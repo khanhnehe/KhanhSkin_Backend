@@ -11,6 +11,8 @@ namespace KhanhSkin_BackEnd.Dtos.Voucher
     {
         public string ProgramName { get; set; }
         public string Code { get; set; }
+        public string Description { get; set; }
+
         public VoucherType VoucherType { get; set; }
         public DiscountType DiscountType { get; set; }
         public decimal MinimumOrderValue { get; set; }

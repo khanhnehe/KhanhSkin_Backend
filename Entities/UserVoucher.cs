@@ -13,6 +13,9 @@ namespace KhanhSkin_BackEnd.Entities
         public Guid UserId { get; set; }
         public User User { get; set; }
 
-        public bool IsUsed { get; set; } = false; // user đã save voucher hay chưa
+        public bool IsUsed { get; set; } = false; // User đã lưu voucher hay chưa
+
+        public int UsageCount { get; set; } // Số lần user đã sử dụng voucher
+
     }
 }

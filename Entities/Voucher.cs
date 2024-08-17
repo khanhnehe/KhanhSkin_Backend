@@ -13,12 +13,12 @@ namespace KhanhSkin_BackEnd.Entities
         public string ProgramName { get; set; }
 
         [Required(ErrorMessage = "Vui lòng nhập mã voucher!")]
-        [StringLength(5, MinimumLength = 1, ErrorMessage = "Mã voucher phải từ 1 đến 5 ký tự và chỉ bao gồm chữ cái hoặc số.")]
+        [StringLength(10, MinimumLength = 1, ErrorMessage = "Mã voucher phải từ 1 đến 5 ký tự và chỉ bao gồm chữ cái hoặc số.")]
         public string Code { get; set; }
 
-        public VoucherType VoucherType { get; set; }
+        public string Description { get; set; }
 
-       
+        public VoucherType VoucherType { get; set; }
 
         public DiscountType DiscountType { get; set; }
 
@@ -27,8 +27,9 @@ namespace KhanhSkin_BackEnd.Entities
 
         public DateTime EndTime { get; set; } // Chỉ giữ ngày hết hạn
 
-        public int TotalUses { get; set; }
-        public int UsesCount { get; set; } // Số lần đã sử dụng
+        public int TotalUses { get; set; } // Sl voucher  tung ra
+
+        public int UsesCount { get; set; } // Số lần 1 user can dùng voucher
         public bool IsActive { get; set; } // Trạng thái hoạt động của voucher
 
         public ICollection<Product> ApplicableProducts { get; set; }// Sử dụng quan hệ trực tiếp

@@ -46,27 +46,19 @@ public class VoucherService : BaseService<KhanhSkin_BackEnd.Entities.Voucher, Cr
 
         var voucher = _mapper.Map<KhanhSkin_BackEnd.Entities.Voucher>(input);
 
-        // Nếu Specific, áp dụng cho một số sp
-        if (input.VoucherType == VoucherType.Specific)
+        if (input.VoucherType == VoucherType.Specific && input.ApplicableProductIds != null && input.ApplicableProductIds.Any())
         {
-            // Khởi tạo ds để lưu các sp áp voucher này
-            var applicableProducts = new List<Product>();
+            voucher.ApplicableProducts = new List<Product>();
 
-            if (input.ApplicableProductIds != null && input.ApplicableProductIds.Any())
+            foreach (var productId in input.ApplicableProductIds)
             {
-                // Duyệt qua từng ID sp để kiểm tra sự exist và add vào ds applicableProducts
-                foreach (var productId in input.ApplicableProductIds)
+                var product = await _productRepository.GetAsync(productId);
+                if (product == null)
                 {
-                    var product = await _productRepository.GetAsync(productId);
-                    if (product == null)
-                    {
-                        throw new ApiException($"Product not found.");
-                    }
-                    applicableProducts.Add(product);
+                    throw new ApiException($"Product with ID {productId} not found.");
                 }
+                voucher.ApplicableProducts.Add(product);
             }
-            // Gán ds sp áp dụng vào thực thể voucher
-            voucher.ApplicableProducts = applicableProducts;
         }
 
         await _voucherRepository.CreateAsync(voucher);
@@ -83,16 +75,14 @@ public class VoucherService : BaseService<KhanhSkin_BackEnd.Entities.Voucher, Cr
             throw new ApiException($"Voucher not found.");
         }
 
-        //  từ DTO sang thực thể voucher hiện có
         _mapper.Map(input, voucherExist);
 
-        // Xóa ds sp hiện tại trong voucher
         voucherExist.ApplicableProducts.Clear();
 
-        // nếu voucher 'Specific' và ds ID sp !null, cập nhật ds sp áp dụng
         if (input.VoucherType == VoucherType.Specific && input.ApplicableProductIds != null && input.ApplicableProductIds.Any())
         {
-            // Duyệt qua từng ID sp để kiểm tra exist và add vào ds ApplicableProducts
+            voucherExist.ApplicableProducts = new List<Product>();
+
             foreach (var productId in input.ApplicableProductIds)
             {
                 var product = await _productRepository.GetAsync(productId);
@@ -108,6 +98,7 @@ public class VoucherService : BaseService<KhanhSkin_BackEnd.Entities.Voucher, Cr
 
         return voucherExist;
     }
+
 
 
     public override async Task<List<CreateUpdateVoucherDto>> GetAll()
