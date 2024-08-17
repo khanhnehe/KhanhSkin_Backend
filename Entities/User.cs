@@ -28,6 +28,7 @@ namespace KhanhSkin_BackEnd.Entities
         public Enums.Role Role { get; set; } = Enums.Role.User;
 
         public Cart Cart { get; set; } // Thêm thuộc tính giỏ hàng
+        public ICollection<UserVoucher> UserVouchers { get; set; } = new List<UserVoucher>();
 
     }
 }

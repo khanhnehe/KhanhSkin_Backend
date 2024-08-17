@@ -15,6 +15,8 @@ namespace KhanhSkin_BackEnd.Entities
         public DbSet<Favorite> Favorites { get; set; }
         public DbSet<Cart> Carts { get; set; }
         public DbSet<CartItem> CartItems { get; set; }
+        public DbSet<Voucher> Vouchers { get; set; }
+        public DbSet<VoucherActivity> VoucherActivity { get; set; }
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
@@ -22,7 +24,7 @@ namespace KhanhSkin_BackEnd.Entities
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Thiết lập kiểu dữ liệu cho các thuộc tính decimal trong Product
+            // TL kiểu dữ liệu cho các thuộc tính decimal trong Product
             modelBuilder.Entity<Product>()
                 .Property(p => p.Price)
                 .HasColumnType("decimal(18,2)");
@@ -35,7 +37,7 @@ namespace KhanhSkin_BackEnd.Entities
                 .Property(p => p.AverageRating)
                 .HasColumnType("decimal(18,2)");
 
-            // Thiết lập kiểu dữ liệu cho các thuộc tính decimal trong ProductVariant
+            // TL kiểu dữ liệu cho các thuộc tính decimal trong ProductVariant
             modelBuilder.Entity<ProductVariant>()
                 .Property(pv => pv.PriceVariant)
                 .HasColumnType("decimal(18,2)");
@@ -44,12 +46,12 @@ namespace KhanhSkin_BackEnd.Entities
                 .Property(pv => pv.SalePriceVariant)
                 .HasColumnType("decimal(18,2)");
 
-            // Thiết lập kiểu dữ liệu cho các thuộc tính decimal trong Cart
+            // TL kiểu dữ liệu cho các thuộc tính decimal trong Cart
             modelBuilder.Entity<Cart>()
                 .Property(c => c.TotalPrice)
                 .HasColumnType("decimal(18,2)");
 
-            // Thiết lập kiểu dữ liệu cho các thuộc tính decimal trong CartItem
+            // TL kiểu dữ liệu cho các thuộc tính decimal trong CartItem
             modelBuilder.Entity<CartItem>()
                 .Property(ci => ci.ProductPrice)
                 .HasColumnType("decimal(18,2)");
@@ -62,37 +64,43 @@ namespace KhanhSkin_BackEnd.Entities
                 .Property(ci => ci.ItemsPrice)
                 .HasColumnType("decimal(18,2)");
 
-            // Thiết lập khóa ngoại và quan hệ 1-n giữa Product và ProductVariant
+            
+
+            modelBuilder.Entity<Voucher>()
+                .Property(v => v.MinimumOrderValue)
+                .HasColumnType("decimal(18,2)");
+
+            // TL FK và quan hệ 1-n giữa Product và ProductVariant
             modelBuilder.Entity<Product>()
                 .HasMany(p => p.Variants)
                 .WithOne(v => v.Product)
                 .HasForeignKey(v => v.ProductId);
 
-            // Thiết lập khóa ngoại và quan hệ 1-n giữa Product và Review
+            // TL FK và quan hệ 1-n giữa Product và Review
             modelBuilder.Entity<Product>()
                 .HasMany(p => p.Reviews)
                 .WithOne(r => r.Product)
                 .HasForeignKey(r => r.ProductId);
 
-            // Thiết lập khóa ngoại và quan hệ 1-n giữa User và Review
+            // TL FK và quan hệ 1-n giữa User và Review
             modelBuilder.Entity<User>()
                 .HasMany(u => u.Reviews)
                 .WithOne(r => r.User)
                 .HasForeignKey(r => r.UserId);
 
-            // Thiết lập khóa ngoại và quan hệ 1-n giữa User và Favorite
+            // TL FK và quan hệ 1-n giữa User và Favorite
             modelBuilder.Entity<User>()
                 .HasMany(u => u.Favorites)
                 .WithOne(f => f.User)
                 .HasForeignKey(f => f.UserId);
 
-            // Thiết lập khóa ngoại và quan hệ 1-n giữa Product và Favorite
+            // TL FK và quan hệ 1-n giữa Product và Favorite
             modelBuilder.Entity<Product>()
                 .HasMany(p => p.Favorites)
                 .WithOne(f => f.Product)
                 .HasForeignKey(f => f.ProductId);
 
-            // Thiết lập bảng nối nhiều-nhiều giữa ProductType và Category
+            // TL bảng nối nhiều-nhiều giữa ProductType và Category
             modelBuilder.Entity<ProductType>()
                 .HasMany(pt => pt.Categories)
                 .WithMany(c => c.ProductTypes)
@@ -112,7 +120,7 @@ namespace KhanhSkin_BackEnd.Entities
                         .OnDelete(DeleteBehavior.Cascade)
                 );
 
-            // Thiết lập bảng nối nhiều-nhiều giữa Product và Category
+            // TL bảng nối nhiều-nhiều giữa Product và Category
             modelBuilder.Entity<Product>()
                 .HasMany(p => p.Categories)
                 .WithMany(c => c.Products)
@@ -132,7 +140,7 @@ namespace KhanhSkin_BackEnd.Entities
                         .OnDelete(DeleteBehavior.Cascade)
                 );
 
-            // Thiết lập bảng nối nhiều-nhiều giữa Product và ProductType
+            // TL bảng nối nhiều-nhiều giữa Product và ProductType
             modelBuilder.Entity<Product>()
                 .HasMany(p => p.ProductTypes)
                 .WithMany(pt => pt.Products)
@@ -152,40 +160,84 @@ namespace KhanhSkin_BackEnd.Entities
                         .OnDelete(DeleteBehavior.Cascade)
                 );
 
-            // Thiết lập mối quan hệ 1-n giữa Brand và Product
+            // quan hệ 1-n giữa Brand và Product
             modelBuilder.Entity<Brand>()
                 .HasMany(b => b.Products)
                 .WithOne(p => p.Brand)
                 .HasForeignKey(p => p.BrandId);
 
-            // Thiết lập mối quan hệ 1-1 giữa User và Cart
+            // quan hệ 1-1 giữa User và Cart
             modelBuilder.Entity<User>()
                 .HasOne(u => u.Cart)
                 .WithOne(c => c.User)
                 .HasForeignKey<Cart>(c => c.UserId);
 
-            // Thiết lập mối quan hệ 1-n giữa Cart và CartItem
+            // quan hệ 1-n giữa Cart và CartItem
             modelBuilder.Entity<Cart>()
                 .HasMany(c => c.CartItems)
                 .WithOne(ci => ci.Cart)
                 .HasForeignKey(ci => ci.CartId);
 
-            // Thiết lập mối quan hệ 1-n giữa Product và CartItem
+            // quan hệ 1-n giữa Product và CartItem
             modelBuilder.Entity<Product>()
                 .HasMany(p => p.CartItems)
                 .WithOne(ci => ci.Product)
                 .HasForeignKey(ci => ci.ProductId);
 
-            // Thiết lập mối quan hệ 1-n giữa ProductVariant và CartItem
+            // quan hệ 1-n giữa ProductVariant và CartItem
             modelBuilder.Entity<ProductVariant>()
                 .HasMany(v => v.CartItems)
                 .WithOne(ci => ci.Variant)
                 .HasForeignKey(ci => ci.VariantId);
 
-            // Thiết lập chỉ số unique cho CartItem
+            // TL chỉ số unique cho CartItem
             modelBuilder.Entity<CartItem>()
                 .HasIndex(ci => new { ci.CartId, ci.ProductId, ci.VariantId })
                 .IsUnique();
+
+
+             // TL bảng nối nhiều-nhiều giữa Product và Voucher
+            modelBuilder.Entity<Product>()
+                .HasMany(p => p.Vouchers)
+                .WithMany(v => v.ApplicableProducts)
+                .UsingEntity<Dictionary<string, object>>(
+                    "ProductVoucher",
+                    j => j
+                        .HasOne<Voucher>()
+                        .WithMany()
+                        .HasForeignKey("VoucherId")
+                        .HasConstraintName("FK_ProductVoucher_Vouchers_VoucherId")
+                        .OnDelete(DeleteBehavior.Cascade),
+                    j => j
+                        .HasOne<Product>()
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .HasConstraintName("FK_ProductVoucher_Products_ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                );
+
+            // Thiết lập quan hệ 1 - n giữa user và userVoucher
+            modelBuilder.Entity<UserVoucher>()
+                .HasOne(uv => uv.User)
+                .WithMany(u => u.UserVouchers)
+                .HasForeignKey(uv => uv.UserId);
+
+            //TL quan hệ 1 - n giữa Voucher và UserVoucher
+            modelBuilder.Entity<UserVoucher>()
+                .HasOne(uv => uv.Voucher)
+                .WithMany(v => v.UserVouchers)
+                .HasForeignKey(uv => uv.VoucherId);
+
+            // Thiết lập quan hệ giữa User, Voucher và VoucherActivity
+            //modelBuilder.Entity<VoucherActivity>()
+            //    .HasOne(va => va.User)
+            //    .WithMany(u => u.VoucherActivities)
+            //    .HasForeignKey(va => va.UserId);
+
+            //modelBuilder.Entity<VoucherActivity>()
+            //    .HasOne(va => va.Voucher)
+            //    .WithMany(v => v.VoucherActivities)
+            //    .HasForeignKey(va => va.VoucherId);
         }
     }
 }

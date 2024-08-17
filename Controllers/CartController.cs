@@ -42,6 +42,20 @@ namespace KhanhSkin_BackEnd.Controllers
                 throw new ApiException($"An error occurred: {ex.Message}");
             }
         }
+        [HttpDelete("delete/{cartItemId}")]
+        public async Task<IActionResult> RemoveCartItem(Guid cartItemId)
+        {
+            try
+            {
+                var cartDto = await _cartService.RemoveCartItem(cartItemId);
+                return Ok(new { message = "Cart item removed successfully.", result = cartDto });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while removing item from cart.");
+                return BadRequest(new { message = ex.Message });
+            }
+        }
 
         [HttpGet("get-cart-by-user-id/{userId}")]
         public async Task<IActionResult> GetCartByUserId(Guid userId)

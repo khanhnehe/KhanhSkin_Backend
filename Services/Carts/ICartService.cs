@@ -1,13 +1,13 @@
 ﻿using KhanhSkin_BackEnd.Dtos.Cart;
 using KhanhSkin_BackEnd.Entities;
+using System;
+using System.Threading.Tasks;
 
 namespace KhanhSkin_BackEnd.Services.Carts
 {
-    public interface ICartService : IBaseService<KhanhSkin_BackEnd.Entities.Cart, CartDto, AddProductToCartDto, CartGetRequestInputDto>
+    public interface ICartService : IBaseService<Cart, CartDto, AddProductToCartDto, CartGetRequestInputDto>
     {
-        Task AddProductToCart(Guid userId, Guid productId, int quantity, Guid? variantId = null);
-
+        Task<CartDto> AddProductToCart(AddProductToCartDto input);
+        Task<CartDto> GetCartByUserId(Guid userId);
     }
 }
-
-

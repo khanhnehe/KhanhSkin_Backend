@@ -316,6 +316,99 @@ namespace KhanhSkin_BackEnd.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("KhanhSkin_BackEnd.Entities.UserVoucher", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsUsed")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("VoucherId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("VoucherId");
+
+                    b.ToTable("UserVoucher");
+                });
+
+            modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Voucher", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)");
+
+                    b.Property<int>("DiscountType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("EndTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("MinimumOrderValue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("ProgramName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("TotalUses")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UsesCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("VoucherType")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Vouchers");
+                });
+
+            modelBuilder.Entity("KhanhSkin_BackEnd.Entities.VoucherActivity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsSuccess")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("UsedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("VoucherId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("VoucherId");
+
+                    b.ToTable("VoucherActivity");
+                });
+
             modelBuilder.Entity("ProductCategory", b =>
                 {
                     b.Property<Guid>("CategoryId")
@@ -359,6 +452,21 @@ namespace KhanhSkin_BackEnd.Migrations
                     b.HasIndex("ProductTypeId");
 
                     b.ToTable("ProductTypeCategory");
+                });
+
+            modelBuilder.Entity("ProductVoucher", b =>
+                {
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("VoucherId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("ProductId", "VoucherId");
+
+                    b.HasIndex("VoucherId");
+
+                    b.ToTable("ProductVoucher");
                 });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Cart", b =>
@@ -457,6 +565,44 @@ namespace KhanhSkin_BackEnd.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("KhanhSkin_BackEnd.Entities.UserVoucher", b =>
+                {
+                    b.HasOne("KhanhSkin_BackEnd.Entities.User", "User")
+                        .WithMany("UserVouchers")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KhanhSkin_BackEnd.Entities.Voucher", "Voucher")
+                        .WithMany("UserVouchers")
+                        .HasForeignKey("VoucherId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+
+                    b.Navigation("Voucher");
+                });
+
+            modelBuilder.Entity("KhanhSkin_BackEnd.Entities.VoucherActivity", b =>
+                {
+                    b.HasOne("KhanhSkin_BackEnd.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KhanhSkin_BackEnd.Entities.Voucher", "Voucher")
+                        .WithMany()
+                        .HasForeignKey("VoucherId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+
+                    b.Navigation("Voucher");
+                });
+
             modelBuilder.Entity("ProductCategory", b =>
                 {
                     b.HasOne("KhanhSkin_BackEnd.Entities.Category", null)
@@ -508,6 +654,23 @@ namespace KhanhSkin_BackEnd.Migrations
                         .HasConstraintName("FK_ProductTypeCategory_ProductTypes_ProductTypeId");
                 });
 
+            modelBuilder.Entity("ProductVoucher", b =>
+                {
+                    b.HasOne("KhanhSkin_BackEnd.Entities.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_ProductVoucher_Products_ProductId");
+
+                    b.HasOne("KhanhSkin_BackEnd.Entities.Voucher", null)
+                        .WithMany()
+                        .HasForeignKey("VoucherId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_ProductVoucher_Vouchers_VoucherId");
+                });
+
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Brand", b =>
                 {
                     b.Navigation("Products");
@@ -542,6 +705,13 @@ namespace KhanhSkin_BackEnd.Migrations
                     b.Navigation("Favorites");
 
                     b.Navigation("Reviews");
+
+                    b.Navigation("UserVouchers");
+                });
+
+            modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Voucher", b =>
+                {
+                    b.Navigation("UserVouchers");
                 });
 #pragma warning restore 612, 618
         }
