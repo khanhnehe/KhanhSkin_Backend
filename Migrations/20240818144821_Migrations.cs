@@ -71,7 +71,8 @@ namespace KhanhSkin_BackEnd.Migrations
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     ProgramName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Code = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: false),
+                    Code = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     VoucherType = table.Column<int>(type: "int", nullable: false),
                     DiscountType = table.Column<int>(type: "int", nullable: false),
                     MinimumOrderValue = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
@@ -163,7 +164,8 @@ namespace KhanhSkin_BackEnd.Migrations
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     VoucherId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    IsUsed = table.Column<bool>(type: "bit", nullable: false)
+                    IsUsed = table.Column<bool>(type: "bit", nullable: false),
+                    UsageCount = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -308,23 +310,24 @@ namespace KhanhSkin_BackEnd.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ProductVoucher",
+                name: "ProductVouchers",
                 columns: table => new
                 {
                     ProductId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    VoucherId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    VoucherId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ProductVoucher", x => new { x.ProductId, x.VoucherId });
+                    table.PrimaryKey("PK_ProductVouchers", x => new { x.ProductId, x.VoucherId });
                     table.ForeignKey(
-                        name: "FK_ProductVoucher_Products_ProductId",
+                        name: "FK_ProductVouchers_Products_ProductId",
                         column: x => x.ProductId,
                         principalTable: "Products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_ProductVoucher_Vouchers_VoucherId",
+                        name: "FK_ProductVouchers_Vouchers_VoucherId",
                         column: x => x.VoucherId,
                         principalTable: "Vouchers",
                         principalColumn: "Id",
@@ -461,8 +464,8 @@ namespace KhanhSkin_BackEnd.Migrations
                 column: "ProductId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProductVoucher_VoucherId",
-                table: "ProductVoucher",
+                name: "IX_ProductVouchers_VoucherId",
+                table: "ProductVouchers",
                 column: "VoucherId");
 
             migrationBuilder.CreateIndex(
@@ -515,7 +518,7 @@ namespace KhanhSkin_BackEnd.Migrations
                 name: "ProductTypeCategory");
 
             migrationBuilder.DropTable(
-                name: "ProductVoucher");
+                name: "ProductVouchers");
 
             migrationBuilder.DropTable(
                 name: "Reviews");

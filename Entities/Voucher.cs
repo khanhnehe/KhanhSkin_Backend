@@ -25,6 +25,10 @@ namespace KhanhSkin_BackEnd.Entities
         [Required(ErrorMessage = "Vui lòng nhập giá trị đơn hàng tối thiểu!")]
         public decimal MinimumOrderValue { get; set; }
 
+        [Required(ErrorMessage = "Vui lòng nhập giá trị giảm giá!")]
+        public decimal DiscountValue { get; set; } // Trường để lưu giá trị giảm giá
+
+
         public DateTime EndTime { get; set; } // Chỉ giữ ngày hết hạn
 
         public int TotalUses { get; set; } // Sl voucher  tung ra
@@ -32,15 +36,10 @@ namespace KhanhSkin_BackEnd.Entities
         public int UsesCount { get; set; } // Số lần 1 user can dùng voucher
         public bool IsActive { get; set; } // Trạng thái hoạt động của voucher
 
-        public ICollection<Product> ApplicableProducts { get; set; }// Sử dụng quan hệ trực tiếp
+        public ICollection<ProductVoucher> ProductVouchers { get; set; } = new List<ProductVoucher>();
 
         public ICollection<UserVoucher> UserVouchers { get; set; } // Quan hệ với UserVoucher
 
-        public Voucher()
-        {
-            ApplicableProducts = new HashSet<Product>();
-            UserVouchers = new HashSet<UserVoucher>();
-            IsActive = true; // Khởi tạo voucher với trạng thái hoạt động
-        }
+       
     }
 }

@@ -5,24 +5,24 @@
 namespace KhanhSkin_BackEnd.Migrations
 {
     /// <inheritdoc />
-    public partial class updateVoucherEntity : Migration
+    public partial class AddDiscountValueVoucher : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "Description",
+            migrationBuilder.AddColumn<decimal>(
+                name: "DiscountValue",
                 table: "Vouchers",
-                type: "nvarchar(max)",
+                type: "decimal(18,2)",
                 nullable: false,
-                defaultValue: "");
+                defaultValue: 0m);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "Description",
+                name: "DiscountValue",
                 table: "Vouchers");
         }
     }

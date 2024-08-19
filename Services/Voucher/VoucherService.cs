@@ -8,7 +8,7 @@ using KhanhSkin_BackEnd.Services;
 using static KhanhSkin_BackEnd.Consts.Enums;
 using Microsoft.EntityFrameworkCore;
 
-public class VoucherService : BaseService<KhanhSkin_BackEnd.Entities.Voucher, CreateUpdateVoucherDto, CreateUpdateVoucherDto, VoucherGetRequestInputDto>
+public class VoucherService : BaseService<KhanhSkin_BackEnd.Entities.Voucher, VoucherDto, CreateUpdateVoucherDto, VoucherGetRequestInputDto>
 {
     private readonly IConfiguration _config;
     private readonly IRepository<KhanhSkin_BackEnd.Entities.Voucher> _voucherRepository;
@@ -37,27 +37,54 @@ public class VoucherService : BaseService<KhanhSkin_BackEnd.Entities.Voucher, Cr
         return await _voucherRepository.AsQueryable().AnyAsync(u => u.Code == code);
     }
 
-    public override async Task<KhanhSkin_BackEnd.Entities.Voucher> Create(CreateUpdateVoucherDto input)
+    public override async Task<Voucher> Create(CreateUpdateVoucherDto input)
     {
         if (await CheckCodeExist(input.Code))
         {
-            throw new ApiException("Voucher code already exists.");
+            throw new ApiException("Mã voucher đã tồn tại.");
         }
 
-        var voucher = _mapper.Map<KhanhSkin_BackEnd.Entities.Voucher>(input);
-
-        if (input.VoucherType == VoucherType.Specific && input.ApplicableProductIds != null && input.ApplicableProductIds.Any())
+        if (input.DiscountType == DiscountType.AmountMoney && input.DiscountValue <= 10000)
         {
-            voucher.ApplicableProducts = new List<Product>();
+            throw new ApiException("Giá trị phải lớn hơn 10000 cho loại giảm giá theo số tiền.");
+        }
+        if (input.DiscountType == DiscountType.Percentage && input.DiscountValue >= 70)
+        {
+            throw new ApiException("Giá trị phải nhỏ hơn 70 cho loại giảm giá theo phần trăm.");
+        }
 
-            foreach (var productId in input.ApplicableProductIds)
+        // Kiểm tra loại voucher và danh sách sản phẩm áp dụng
+        if (input.VoucherType == VoucherType.Specific)
+        {
+            if (input.ProductVouchers == null || !input.ProductVouchers.Any())
             {
-                var product = await _productRepository.GetAsync(productId);
+                throw new ApiException("Danh sách sản phẩm áp dụng không được để trống cho loại voucher cụ thể.");
+            }
+        }
+
+        // Sử dụng AutoMapper để ánh xạ từ DTO sang thực thể Voucher
+        var voucher = _mapper.Map<Voucher>(input);
+
+        if (input.VoucherType == VoucherType.Specific && input.ProductVouchers != null && input.ProductVouchers.Any())
+        {
+            voucher.ProductVouchers = new List<ProductVoucher>();
+
+            foreach (var productVoucherDto in input.ProductVouchers)
+            {
+                var product = await _productRepository.GetAsync(productVoucherDto.ProductId);
                 if (product == null)
                 {
-                    throw new ApiException($"Product with ID {productId} not found.");
+                    throw new ApiException($"Không tìm thấy sản phẩm với ID {productVoucherDto.ProductId}.");
                 }
-                voucher.ApplicableProducts.Add(product);
+
+                // Tạo ProductVoucher và thêm vào danh sách ProductVouchers của Voucher
+                var productVoucher = new ProductVoucher
+                {
+                    Id = Guid.NewGuid(), // Khởi tạo Id mới
+                    ProductId = product.Id,
+                    VoucherId = voucher.Id
+                };
+                voucher.ProductVouchers.Add(productVoucher);
             }
         }
 
@@ -67,71 +94,156 @@ public class VoucherService : BaseService<KhanhSkin_BackEnd.Entities.Voucher, Cr
         return voucher;
     }
 
-    public override async Task<KhanhSkin_BackEnd.Entities.Voucher> Update(Guid id, CreateUpdateVoucherDto input)
-    {
-        var voucherExist = await _voucherRepository.GetAsync(id);
-        if (voucherExist == null)
-        {
-            throw new ApiException($"Voucher not found.");
-        }
 
-        _mapper.Map(input, voucherExist);
-
-        voucherExist.ApplicableProducts.Clear();
-
-        if (input.VoucherType == VoucherType.Specific && input.ApplicableProductIds != null && input.ApplicableProductIds.Any())
-        {
-            voucherExist.ApplicableProducts = new List<Product>();
-
-            foreach (var productId in input.ApplicableProductIds)
-            {
-                var product = await _productRepository.GetAsync(productId);
-                if (product == null)
-                {
-                    throw new ApiException($"Product with ID {productId} not found.");
-                }
-                voucherExist.ApplicableProducts.Add(product);
-            }
-        }
-
-        await _voucherRepository.UpdateAsync(voucherExist);
-
-        return voucherExist;
-    }
-
-
-
-    public override async Task<List<CreateUpdateVoucherDto>> GetAll()
+    public override async Task<Voucher> Update(Guid id, CreateUpdateVoucherDto input)
     {
         try
         {
-            var vouchers = await _voucherRepository.GetAllListAsync();
-            return vouchers.Select(v => _mapper.Map<CreateUpdateVoucherDto>(v)).ToList();
+            var voucher = await _voucherRepository.AsQueryable()
+                .Include(v => v.ProductVouchers)
+                .FirstOrDefaultAsync(v => v.Id == id);
+
+            if (voucher == null)
+            {
+                _logger.LogError("Voucher with id {Id} not found", id);
+                throw new KeyNotFoundException($"Voucher with id {id} not found");
+            }
+
+            if (input.DiscountType == DiscountType.AmountMoney && input.DiscountValue <= 10000)
+            {
+                throw new ApiException("Giá trị giảm giá phải lớn hơn 10000 cho loại giảm giá theo số tiền.");
+            }
+            if (input.DiscountType == DiscountType.Percentage && input.DiscountValue >= 70)
+            {
+                throw new ApiException("Giá trị giảm giá phải nhỏ hơn 70 cho loại giảm giá theo phần trăm.");
+            }
+
+            // Kiểm tra loại voucher và danh sách sản phẩm áp dụng
+            if (input.VoucherType == VoucherType.Specific)
+            {
+                if (input.ProductVouchers == null || !input.ProductVouchers.Any())
+                {
+                    throw new ApiException("Danh sách sản phẩm áp dụng không được để trống cho loại voucher cụ thể.");
+                }
+            }
+
+            // Ánh xạ các thuộc tính từ DTO sang thực thể Voucher (trừ danh sách ProductVouchers)
+            _mapper.Map(input, voucher);
+
+            if (input.VoucherType == VoucherType.Specific && input.ProductVouchers != null && input.ProductVouchers.Any())
+            {
+                var existProductVoucher = voucher.ProductVouchers.ToList();
+
+                // Tìm các ProductVouchers cần thêm mới
+                var newProductVoucher = input.ProductVouchers
+                    .Where(pv => !existProductVoucher.Any(epv => epv.ProductId == pv.ProductId))
+                    .Select(pv => new ProductVoucher
+                    {
+                        Id = Guid.NewGuid(),
+                        ProductId = pv.ProductId,
+                        VoucherId = voucher.Id
+                    }).ToList();
+
+                // Tìm các ProductVouchers cần xóa
+                var removeProductVoucher = existProductVoucher
+                    .Where(epv => !input.ProductVouchers.Any(pv => pv.ProductId == epv.ProductId))
+                    .ToList();
+
+                // Thêm các ProductVouchers mới vào voucher
+                foreach (var productVoucher in newProductVoucher)
+                {
+                    voucher.ProductVouchers.Add(productVoucher);
+                }
+
+                // Xóa các ProductVouchers không còn tồn tại trong danh sách mới
+                foreach (var productVoucher in removeProductVoucher)
+                {
+                    voucher.ProductVouchers.Remove(productVoucher);
+                }
+            }
+            else
+            {
+                // Nếu không có ProductVouchers hoặc VoucherType không phải Specific, xóa tất cả ProductVouchers
+                voucher.ProductVouchers.Clear();
+            }
+
+            await _voucherRepository.UpdateAsync(voucher);
+            await _voucherRepository.SaveChangesAsync();
+
+            return voucher;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occurred while retrieving all vouchers.");
-            throw new ApiException("Có lỗi xảy ra khi lấy danh sách tất cả voucher.");
+            _logger.LogError(ex, "Error updating voucher: {VoucherId}", id);
+            throw;
         }
     }
 
-    public override async Task<KhanhSkin_BackEnd.Entities.Voucher> Delete(Guid id)
+
+
+
+    public override async Task<VoucherDto> Get(Guid id)
     {
-        var voucher = await _voucherRepository.AsQueryable().AnyAsync(v => v.Id == id);
-        if (!voucher)
+        try
         {
-            throw new ApiException($"Voucher with ID {id} not found.");
+            var voucher = await _voucherRepository.AsQueryable()
+                .Include(v => v.ProductVouchers)
+                .ThenInclude(pv => pv.Product)
+                .FirstOrDefaultAsync(v => v.Id == id);
+
+            if (voucher == null)
+            {
+                _logger.LogError("Voucher with id {Id} not found", id);
+                throw new KeyNotFoundException($"Voucher with id {id} not found");
+            }
+
+            return _mapper.Map<VoucherDto>(voucher);
         }
-        return await _voucherRepository.DeleteAsync(id);
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving voucher: {VoucherId}", id);
+            throw;
+        }
     }
 
-    public override async Task<CreateUpdateVoucherDto> Get(Guid id)
+    public override async Task<List<VoucherDto>> GetAll()
     {
-        var voucher = await _voucherRepository.GetAsync(id);
-        if (voucher == null)
+        try
         {
-            throw new ApiException($"Voucher with ID {id} not found.");
+            var vouchers = await _voucherRepository.AsQueryable()
+                .Include(v => v.ProductVouchers)
+                .ThenInclude(pv => pv.Product)
+                .ToListAsync();
+
+            return vouchers.Select(v => _mapper.Map<VoucherDto>(v)).ToList();
         }
-        return _mapper.Map<CreateUpdateVoucherDto>(voucher);
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving all vouchers");
+            throw;
+        }
     }
+
+
+    public override async Task<Voucher> Delete(Guid id)
+    {
+        try
+        {
+            var voucher = await _voucherRepository.GetAsync(id);
+            if (voucher == null)
+            {
+                _logger.LogError("Voucher with id {Id} not found", id);
+                throw new KeyNotFoundException($"Voucher with id {id} not found");
+            }
+
+            await _voucherRepository.DeleteAsync(id);
+            return voucher;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting voucher: {VoucherId}", id);
+            throw;
+        }
+    }
+
 }

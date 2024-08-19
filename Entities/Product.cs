@@ -54,7 +54,7 @@ namespace KhanhSkin_BackEnd.Entities
         public ICollection<CartItem> CartItems { get; set; } = new List<CartItem>(); // Thêm thuộc tính CartItems
 
         // Thuộc tính mới để lưu các Voucher áp dụng cho sản phẩm này
-        public ICollection<Voucher> Vouchers { get; set; } = new List<Voucher>();
+        public ICollection<ProductVoucher> ProductVouchers { get; set; } = new List<ProductVoucher>();
 
     }
 }

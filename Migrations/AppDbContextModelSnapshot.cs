@@ -252,6 +252,24 @@ namespace KhanhSkin_BackEnd.Migrations
                     b.ToTable("ProductVariants");
                 });
 
+            modelBuilder.Entity("KhanhSkin_BackEnd.Entities.ProductVoucher", b =>
+                {
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("VoucherId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("ProductId", "VoucherId");
+
+                    b.HasIndex("VoucherId");
+
+                    b.ToTable("ProductVouchers");
+                });
+
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Review", b =>
                 {
                     b.Property<Guid>("Id")
@@ -361,6 +379,9 @@ namespace KhanhSkin_BackEnd.Migrations
                     b.Property<int>("DiscountType")
                         .HasColumnType("int");
 
+                    b.Property<decimal>("DiscountValue")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<DateTime>("EndTime")
                         .HasColumnType("datetime2");
 
@@ -461,21 +482,6 @@ namespace KhanhSkin_BackEnd.Migrations
                     b.ToTable("ProductTypeCategory");
                 });
 
-            modelBuilder.Entity("ProductVoucher", b =>
-                {
-                    b.Property<Guid>("ProductId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("VoucherId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("ProductId", "VoucherId");
-
-                    b.HasIndex("VoucherId");
-
-                    b.ToTable("ProductVoucher");
-                });
-
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Cart", b =>
                 {
                     b.HasOne("KhanhSkin_BackEnd.Entities.User", "User")
@@ -551,6 +557,25 @@ namespace KhanhSkin_BackEnd.Migrations
                         .IsRequired();
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("KhanhSkin_BackEnd.Entities.ProductVoucher", b =>
+                {
+                    b.HasOne("KhanhSkin_BackEnd.Entities.Product", "Product")
+                        .WithMany("ProductVouchers")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KhanhSkin_BackEnd.Entities.Voucher", "Voucher")
+                        .WithMany("ProductVouchers")
+                        .HasForeignKey("VoucherId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Voucher");
                 });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Review", b =>
@@ -661,23 +686,6 @@ namespace KhanhSkin_BackEnd.Migrations
                         .HasConstraintName("FK_ProductTypeCategory_ProductTypes_ProductTypeId");
                 });
 
-            modelBuilder.Entity("ProductVoucher", b =>
-                {
-                    b.HasOne("KhanhSkin_BackEnd.Entities.Product", null)
-                        .WithMany()
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_ProductVoucher_Products_ProductId");
-
-                    b.HasOne("KhanhSkin_BackEnd.Entities.Voucher", null)
-                        .WithMany()
-                        .HasForeignKey("VoucherId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_ProductVoucher_Vouchers_VoucherId");
-                });
-
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Brand", b =>
                 {
                     b.Navigation("Products");
@@ -693,6 +701,8 @@ namespace KhanhSkin_BackEnd.Migrations
                     b.Navigation("CartItems");
 
                     b.Navigation("Favorites");
+
+                    b.Navigation("ProductVouchers");
 
                     b.Navigation("Reviews");
 
@@ -718,6 +728,8 @@ namespace KhanhSkin_BackEnd.Migrations
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Voucher", b =>
                 {
+                    b.Navigation("ProductVouchers");
+
                     b.Navigation("UserVouchers");
                 });
 #pragma warning restore 612, 618

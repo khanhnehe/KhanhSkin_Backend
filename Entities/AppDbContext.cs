@@ -17,6 +17,7 @@ namespace KhanhSkin_BackEnd.Entities
         public DbSet<CartItem> CartItems { get; set; }
         public DbSet<Voucher> Vouchers { get; set; }
         public DbSet<VoucherActivity> VoucherActivity { get; set; }
+        public DbSet<ProductVoucher> ProductVouchers { get; set; } // Thêm DbSet cho ProductVoucher
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
@@ -64,11 +65,14 @@ namespace KhanhSkin_BackEnd.Entities
                 .Property(ci => ci.ItemsPrice)
                 .HasColumnType("decimal(18,2)");
 
-            
-
             modelBuilder.Entity<Voucher>()
                 .Property(v => v.MinimumOrderValue)
                 .HasColumnType("decimal(18,2)");
+
+            // Cấu hình cho thuộc tính DiscountValue
+            modelBuilder.Entity<Voucher>()
+                .Property(v => v.DiscountValue)
+                .HasColumnType("decimal(18,2)"); // Chỉ định 
 
             // TL FK và quan hệ 1-n giữa Product và ProductVariant
             modelBuilder.Entity<Product>()
@@ -160,6 +164,20 @@ namespace KhanhSkin_BackEnd.Entities
                         .OnDelete(DeleteBehavior.Cascade)
                 );
 
+            // TL bảng nối nhiều-nhiều giữa Product và Voucher
+            modelBuilder.Entity<ProductVoucher>()
+                .HasKey(pv => new { pv.ProductId, pv.VoucherId });
+
+            modelBuilder.Entity<ProductVoucher>()
+                .HasOne(pv => pv.Product)
+                .WithMany(p => p.ProductVouchers)
+                .HasForeignKey(pv => pv.ProductId);
+
+            modelBuilder.Entity<ProductVoucher>()
+                .HasOne(pv => pv.Voucher)
+                .WithMany(v => v.ProductVouchers)
+                .HasForeignKey(pv => pv.VoucherId);
+
             // quan hệ 1-n giữa Brand và Product
             modelBuilder.Entity<Brand>()
                 .HasMany(b => b.Products)
@@ -195,34 +213,13 @@ namespace KhanhSkin_BackEnd.Entities
                 .HasIndex(ci => new { ci.CartId, ci.ProductId, ci.VariantId })
                 .IsUnique();
 
-
-             // TL bảng nối nhiều-nhiều giữa Product và Voucher
-            modelBuilder.Entity<Product>()
-                .HasMany(p => p.Vouchers)
-                .WithMany(v => v.ApplicableProducts)
-                .UsingEntity<Dictionary<string, object>>(
-                    "ProductVoucher",
-                    j => j
-                        .HasOne<Voucher>()
-                        .WithMany()
-                        .HasForeignKey("VoucherId")
-                        .HasConstraintName("FK_ProductVoucher_Vouchers_VoucherId")
-                        .OnDelete(DeleteBehavior.Cascade),
-                    j => j
-                        .HasOne<Product>()
-                        .WithMany()
-                        .HasForeignKey("ProductId")
-                        .HasConstraintName("FK_ProductVoucher_Products_ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                );
-
             // Thiết lập quan hệ 1 - n giữa user và userVoucher
             modelBuilder.Entity<UserVoucher>()
                 .HasOne(uv => uv.User)
                 .WithMany(u => u.UserVouchers)
                 .HasForeignKey(uv => uv.UserId);
 
-            //TL quan hệ 1 - n giữa Voucher và UserVoucher
+            // TL quan hệ 1 - n giữa Voucher và UserVoucher
             modelBuilder.Entity<UserVoucher>()
                 .HasOne(uv => uv.Voucher)
                 .WithMany(v => v.UserVouchers)
