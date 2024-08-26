@@ -25,7 +25,6 @@ namespace KhanhSkin_BackEnd.Entities
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // TL kiểu dữ liệu cho các thuộc tính decimal trong Product
             modelBuilder.Entity<Product>()
                 .Property(p => p.Price)
                 .HasColumnType("decimal(18,2)");
@@ -38,7 +37,6 @@ namespace KhanhSkin_BackEnd.Entities
                 .Property(p => p.AverageRating)
                 .HasColumnType("decimal(18,2)");
 
-            // TL kiểu dữ liệu cho các thuộc tính decimal trong ProductVariant
             modelBuilder.Entity<ProductVariant>()
                 .Property(pv => pv.PriceVariant)
                 .HasColumnType("decimal(18,2)");
@@ -47,12 +45,10 @@ namespace KhanhSkin_BackEnd.Entities
                 .Property(pv => pv.SalePriceVariant)
                 .HasColumnType("decimal(18,2)");
 
-            // TL kiểu dữ liệu cho các thuộc tính decimal trong Cart
             modelBuilder.Entity<Cart>()
                 .Property(c => c.TotalPrice)
                 .HasColumnType("decimal(18,2)");
 
-            // TL kiểu dữ liệu cho các thuộc tính decimal trong CartItem
             modelBuilder.Entity<CartItem>()
                 .Property(ci => ci.ProductPrice)
                 .HasColumnType("decimal(18,2)");
@@ -69,10 +65,18 @@ namespace KhanhSkin_BackEnd.Entities
                 .Property(v => v.MinimumOrderValue)
                 .HasColumnType("decimal(18,2)");
 
-            // Cấu hình cho thuộc tính DiscountValue
             modelBuilder.Entity<Voucher>()
                 .Property(v => v.DiscountValue)
-                .HasColumnType("decimal(18,2)"); // Chỉ định 
+                .HasColumnType("decimal(18,2)"); 
+
+             modelBuilder.Entity<Cart>()
+            .Property(c => c.DiscountValue)
+            .HasColumnType("decimal(18,2)"); 
+
+             modelBuilder.Entity<Cart>()
+            .Property(c => c.FinalPrice)
+             .HasColumnType("decimal(18,2)");
+
 
             // TL FK và quan hệ 1-n giữa Product và ProductVariant
             modelBuilder.Entity<Product>()
@@ -225,16 +229,12 @@ namespace KhanhSkin_BackEnd.Entities
                 .WithMany(v => v.UserVouchers)
                 .HasForeignKey(uv => uv.VoucherId);
 
-            // Thiết lập quan hệ giữa User, Voucher và VoucherActivity
-            //modelBuilder.Entity<VoucherActivity>()
-            //    .HasOne(va => va.User)
-            //    .WithMany(u => u.VoucherActivities)
-            //    .HasForeignKey(va => va.UserId);
+            // Thiết lập mối quan hệ 1-1 giữa Voucher và Cart
+            modelBuilder.Entity<Voucher>()
+                .HasOne(v => v.Cart)
+                .WithOne(c => c.Voucher)
+                .HasForeignKey<Cart>(c => c.VoucherId);
 
-            //modelBuilder.Entity<VoucherActivity>()
-            //    .HasOne(va => va.Voucher)
-            //    .WithMany(v => v.VoucherActivities)
-            //    .HasForeignKey(va => va.VoucherId);
         }
     }
 }

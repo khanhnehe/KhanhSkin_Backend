@@ -4,6 +4,7 @@ using KhanhSkin_BackEnd.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace KhanhSkin_BackEnd.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240822160721_UpdateToCartNew")]
+    partial class UpdateToCartNew
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -63,9 +66,7 @@ namespace KhanhSkin_BackEnd.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.HasIndex("VoucherId")
-                        .IsUnique()
-                        .HasFilter("[VoucherId] IS NOT NULL");
+                    b.HasIndex("VoucherId");
 
                     b.ToTable("Carts");
                 });
@@ -504,8 +505,8 @@ namespace KhanhSkin_BackEnd.Migrations
                         .IsRequired();
 
                     b.HasOne("KhanhSkin_BackEnd.Entities.Voucher", "Voucher")
-                        .WithOne("Cart")
-                        .HasForeignKey("KhanhSkin_BackEnd.Entities.Cart", "VoucherId");
+                        .WithMany()
+                        .HasForeignKey("VoucherId");
 
                     b.Navigation("User");
 
@@ -747,9 +748,6 @@ namespace KhanhSkin_BackEnd.Migrations
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Voucher", b =>
                 {
-                    b.Navigation("Cart")
-                        .IsRequired();
-
                     b.Navigation("ProductVouchers");
 
                     b.Navigation("UserVouchers");

@@ -7,6 +7,7 @@ namespace KhanhSkin_BackEnd.Dtos.Cart
         public Guid ProductId { get; set; }
         public int AmountAdd { get; set; }
         public Guid? VariantId { get; set; }
+        public Guid? VoucherId { get; set; }
 
     }
 }

@@ -27,7 +27,6 @@ namespace KhanhSkin_BackEnd.Services.Voucher
                     Product = new ProductDto
                     {
                         Id = pv.Product.Id,
-                        // Thêm các thuộc tính khác của ProductDto nếu cần
                     }
                 }).ToList()));
 
@@ -42,7 +41,7 @@ namespace KhanhSkin_BackEnd.Services.Voucher
                      dest.ProductVouchers = src.ProductVouchers.Select(pv => new ProductVoucher
                      {
                          ProductId = pv.ProductId,
-                         VoucherId = dest.Id, // VoucherId là Id của Voucher mà bạn vừa tạo
+                         VoucherId = dest.Id, // VoucherId là Id của Voucher vừa tạo
                          Id = Guid.NewGuid() // Tạo mới GUID cho ProductVoucher
                      }).ToList();
                  }

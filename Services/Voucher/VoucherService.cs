@@ -127,7 +127,7 @@ public class VoucherService : BaseService<KhanhSkin_BackEnd.Entities.Voucher, Vo
                 }
             }
 
-            // Ánh xạ các thuộc tính từ DTO sang thực thể Voucher (trừ danh sách ProductVouchers)
+            // Ánh xạ các thuộc tính từ DTO sang thực thể Voucher (trừ ProductVouchers)
             _mapper.Map(input, voucher);
 
             if (input.VoucherType == VoucherType.Specific && input.ProductVouchers != null && input.ProductVouchers.Any())

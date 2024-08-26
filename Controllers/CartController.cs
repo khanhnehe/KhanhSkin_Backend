@@ -77,6 +77,19 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
-        // Other methods in CartController...
+        [HttpPost("apply-voucher")]
+        public async Task<IActionResult> ApplyVoucherToCart([FromBody] ApplyVoucherDto input)
+        {
+            try
+            {
+                await _cartService.ApplyVoucherToCart(input);
+                return Ok(new { message = "Voucher applied successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while applying voucher to cart.");
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }

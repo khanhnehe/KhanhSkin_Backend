@@ -40,6 +40,8 @@ namespace KhanhSkin_BackEnd.Entities
 
         public ICollection<UserVoucher> UserVouchers { get; set; } // Quan hệ với UserVoucher
 
-       
+        public Cart Cart { get; set; }
+
+
     }
 }
