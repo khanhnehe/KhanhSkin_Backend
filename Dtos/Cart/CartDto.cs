@@ -1,4 +1,5 @@
 ﻿using KhanhSkin_BackEnd.Dtos.CartItem;
+using KhanhSkin_BackEnd.Dtos.Voucher;
 using KhanhSkin_BackEnd.Share.Dtos;
 
 namespace KhanhSkin_BackEnd.Dtos.Cart
@@ -14,5 +15,7 @@ namespace KhanhSkin_BackEnd.Dtos.Cart
         public decimal DiscountValue { get; set; } = 0;
 
         public decimal FinalPrice { get; set; } = 0;
+
+
     }
 }

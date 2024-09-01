@@ -23,6 +23,7 @@ using KhanhSkin_BackEnd.Services.ProductVariants;
 using KhanhSkin_BackEnd.Services.Carts;
 using System.Security.Claims;
 using KhanhSkin_BackEnd.Services.Voucher;
+using KhanhSkin_BackEnd.Services.Address;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,7 +48,8 @@ builder.Services.AddAutoMapper(
     typeof(ProductTypeAutoMapperProfile),
     typeof(ProductVariantAutoMapperProfile),
     typeof(CartAutoMapperProfile),
-    typeof(VoucherAutoMapperProfile)
+    typeof(VoucherAutoMapperProfile),
+    typeof(AddressMapperProfile)
 
 );
 
@@ -70,6 +72,10 @@ builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<ProductVariantService>();
 builder.Services.AddScoped<CartService>();
 builder.Services.AddScoped<VoucherService>();
+builder.Services.AddScoped<AddressService>();
+
+// Đăng ký LocationService với HttpClient
+builder.Services.AddHttpClient<LocationService>();
 
 // Thêm hỗ trợ cho Controllers và API Endpoints với JSON serialization
 builder.Services.AddControllers().AddJsonOptions(options =>

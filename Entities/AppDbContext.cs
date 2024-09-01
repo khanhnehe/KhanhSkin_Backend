@@ -18,6 +18,9 @@ namespace KhanhSkin_BackEnd.Entities
         public DbSet<Voucher> Vouchers { get; set; }
         public DbSet<VoucherActivity> VoucherActivity { get; set; }
         public DbSet<ProductVoucher> ProductVouchers { get; set; } // Thêm DbSet cho ProductVoucher
+        public DbSet<Address> Addresses { get; set; }
+        public DbSet<Order> Orders { get; set; }
+        public DbSet<OrderItem> OrderItems { get; set; }
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
@@ -76,6 +79,35 @@ namespace KhanhSkin_BackEnd.Entities
              modelBuilder.Entity<Cart>()
             .Property(c => c.FinalPrice)
              .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<Order>()
+       .Property(o => o.DiscountValue)
+       .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<Order>()
+                .Property(o => o.FinalPrice)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<Order>()
+                .Property(o => o.ShippingPrice)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<Order>()
+                .Property(o => o.TotalPrice)
+                .HasColumnType("decimal(18,2)");
+
+            // Thiết lập kiểu dữ liệu cho các thuộc tính decimal trong OrderItem
+            modelBuilder.Entity<OrderItem>()
+                .Property(oi => oi.ItemsPrice)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<OrderItem>()
+                .Property(oi => oi.ProductPrice)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<OrderItem>()
+                .Property(oi => oi.ProductSalePrice)
+                .HasColumnType("decimal(18,2)");
 
 
             // TL FK và quan hệ 1-n giữa Product và ProductVariant
@@ -235,6 +267,32 @@ namespace KhanhSkin_BackEnd.Entities
                 .WithOne(c => c.Voucher)
                 .HasForeignKey<Cart>(c => c.VoucherId);
 
+            modelBuilder.Entity<Address>()
+         .HasOne(a => a.User)
+         .WithMany(u => u.Addresses) // Một người dùng có thể có nhiều địa chỉ
+         .HasForeignKey(a => a.UserId)
+         .OnDelete(DeleteBehavior.Cascade); // Xóa địa chỉ nếu người dùng bị xóa
+
+            modelBuilder.Entity<Order>()
+                .HasOne(o => o.Address)
+                .WithMany() // Điều này có nghĩa là một `Address` có thể được liên kết với nhiều `Order` (tùy vào mục đích sử dụng)
+                .HasForeignKey(o => o.AddressId);
+
+            modelBuilder.Entity<Order>()
+                .HasOne(o => o.User)
+                .WithMany() // Điều này ngăn chặn multiple cascade paths
+                .HasForeignKey(o => o.UserId)
+                .OnDelete(DeleteBehavior.Restrict); // Hoặc bạn có thể dùng DeleteBehavior.SetNull
+
+            modelBuilder.Entity<Order>()
+                .HasMany(o => o.OrderItems)
+                .WithOne(oi => oi.Order)
+                .HasForeignKey(oi => oi.OrderId);
+
+            modelBuilder.Entity<Order>()
+                .HasOne(o => o.Voucher)
+                .WithMany() // Nếu bạn muốn nhiều `Order` có thể sử dụng cùng một `Voucher`
+                .HasForeignKey(o => o.VoucherId);
         }
     }
 }

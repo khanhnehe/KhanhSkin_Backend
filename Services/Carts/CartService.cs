@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using KhanhSkin_BackEnd.Dtos.Cart;
+using KhanhSkin_BackEnd.Dtos.Voucher;
 using KhanhSkin_BackEnd.Entities;
 using KhanhSkin_BackEnd.Repositories;
 using KhanhSkin_BackEnd.Services.CurrentUser;
@@ -21,6 +22,7 @@ namespace KhanhSkin_BackEnd.Services.Carts
         private readonly IRepository<Product> _productRepository;
         private readonly IRepository<ProductVariant> _productVariantRepository;
         private readonly IRepository<KhanhSkin_BackEnd.Entities.Voucher> _voucherRepository;
+        private readonly IRepository<UserVoucher> _userVoucherRepository;
         private readonly IMapper _mapper;
         private readonly ILogger<CartService> _logger;
         private readonly ICurrentUser _currentUser;
@@ -32,6 +34,7 @@ namespace KhanhSkin_BackEnd.Services.Carts
             IRepository<ProductVariant> productVariantRepository,
             IRepository<Product> productRepository,
             IRepository<KhanhSkin_BackEnd.Entities.Voucher> voucherRepository,
+            IRepository<UserVoucher> userVoucherRepository,
             IMapper mapper,
             ILogger<CartService> logger,
             ICurrentUser currentUser)
@@ -43,6 +46,7 @@ namespace KhanhSkin_BackEnd.Services.Carts
             _productRepository = productRepository;
             _productVariantRepository = productVariantRepository;
             _voucherRepository = voucherRepository;
+            _userVoucherRepository = userVoucherRepository;
             _mapper = mapper;
             _logger = logger;
             _currentUser = currentUser;
@@ -171,15 +175,28 @@ namespace KhanhSkin_BackEnd.Services.Carts
                     throw new Exception("Cart not found");
                 }
 
-                // Kiểm tra và lấy voucher
                 var voucher = await _voucherRepository
                     .AsQueryable()
-                    .Include(v => v.ProductVouchers)
                     .FirstOrDefaultAsync(v => v.Id == input.VoucherId);
 
-                if (voucher == null || !voucher.IsActive || voucher.EndTime < DateTime.Now)
+                if (voucher == null)
                 {
-                    // Nếu voucher không còn hoạt động hoặc hết hạn, xóa voucher khỏi giỏ hàng
+                    throw new Exception("Voucher không tồn tại.");
+                }
+
+                // Nếu hành động là "remove", xóa voucher khỏi giỏ hàng
+                if (input.Action == "remove")
+                {
+                    cart.VoucherId = null;
+                    cart.DiscountValue = 0;
+                    cart.FinalPrice = cart.TotalPrice;
+                    await _cartRepository.UpdateAsync(cart);
+                    return;
+                }
+
+                // Kiểm tra nếu voucher không còn hoạt động hoặc hết hạn
+                if (!voucher.IsActive || voucher.EndTime < DateTime.Now)
+                {
                     cart.VoucherId = null;
                     cart.DiscountValue = 0;
                     cart.FinalPrice = cart.TotalPrice;
@@ -190,7 +207,6 @@ namespace KhanhSkin_BackEnd.Services.Carts
                 // Kiểm tra giá trị đơn hàng có đạt yêu cầu tối thiểu để áp dụng voucher hay không
                 if (cart.TotalPrice < voucher.MinimumOrderValue)
                 {
-                    // Nếu giá trị đơn hàng không đủ, xóa voucher khỏi giỏ hàng
                     cart.VoucherId = null;
                     cart.DiscountValue = 0;
                     cart.FinalPrice = cart.TotalPrice;
@@ -204,20 +220,13 @@ namespace KhanhSkin_BackEnd.Services.Carts
                     var productIdsInCart = cart.CartItems.Select(ci => ci.ProductId).ToList();
                     var productIdsInVoucher = voucher.ProductVouchers.Select(pv => pv.ProductId).ToList();
 
-                    // Logging giá trị của productIdsInCart và productIdsInVoucher
-                    _logger.LogInformation($"Productid Cart: {string.Join(", ", productIdsInCart)}");
-                    _logger.LogInformation($"Productid Voucher: {string.Join(", ", productIdsInVoucher)}");
-
-                    // Lọc ds productId trong cart có match với ds productId trong voucher không
                     var validProducts = await _productRepository
                         .AsQueryable()
                         .Where(p => productIdsInVoucher.Contains(p.Id) && productIdsInCart.Contains(p.Id))
                         .ToListAsync();
 
-                    // Kiểm tra số lượng sản phẩm hợp lệ
                     if (!validProducts.Any())
                     {
-                        // Nếu không có sản phẩm nào khớp, xóa voucher khỏi giỏ hàng
                         cart.VoucherId = null;
                         cart.DiscountValue = 0;
                         cart.FinalPrice = cart.TotalPrice;
@@ -226,6 +235,7 @@ namespace KhanhSkin_BackEnd.Services.Carts
                     }
                 }
 
+                // Tính toán giá trị giảm giá và áp dụng voucher
                 decimal discountValue = 0;
                 if (voucher.DiscountType == DiscountType.AmountMoney)
                 {
@@ -248,7 +258,6 @@ namespace KhanhSkin_BackEnd.Services.Carts
                 throw new Exception($"An error occurred while applying voucher to cart: {ex.Message}");
             }
         }
-
 
 
         public async Task AddOrUpdateCartItem(Cart cart, Product product, ProductVariant variant, int amountAdd)

@@ -19,7 +19,6 @@ namespace KhanhSkin_BackEnd.Dtos.User
         public string Email { get; set; }
         public string? PhoneNumber { get; set; }
 
-        public string? Address { get; set; }
 
         [Required(ErrorMessage = "Vui lòng nhập mật khẩu!")]
         public string Password { get; set; }

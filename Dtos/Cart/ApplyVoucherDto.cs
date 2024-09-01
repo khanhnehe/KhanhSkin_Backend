@@ -3,6 +3,8 @@
     public class ApplyVoucherDto
     {
         public Guid VoucherId { get; set; }
+        public string Action { get; set; } // "apply" hoặc "remove"
+
 
     }
 }

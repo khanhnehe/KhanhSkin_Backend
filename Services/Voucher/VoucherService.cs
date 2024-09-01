@@ -13,6 +13,7 @@ public class VoucherService : BaseService<KhanhSkin_BackEnd.Entities.Voucher, Vo
     private readonly IConfiguration _config;
     private readonly IRepository<KhanhSkin_BackEnd.Entities.Voucher> _voucherRepository;
     private readonly IRepository<Product> _productRepository;
+    private readonly IRepository<UserVoucher> _userVoucherRepository;
     private readonly IMapper _mapper;
     private readonly ILogger<VoucherService> _logger;
 
@@ -20,6 +21,7 @@ public class VoucherService : BaseService<KhanhSkin_BackEnd.Entities.Voucher, Vo
         IConfiguration config,
         IRepository<KhanhSkin_BackEnd.Entities.Voucher> repository,
         IRepository<Product> productRepository,
+        IRepository<UserVoucher> userVoucherRepository,
         IMapper mapper,
         ILogger<VoucherService> logger,
         ICurrentUser currentUser)
@@ -28,6 +30,7 @@ public class VoucherService : BaseService<KhanhSkin_BackEnd.Entities.Voucher, Vo
         _config = config;
         _voucherRepository = repository;
         _productRepository = productRepository;
+        _userVoucherRepository = userVoucherRepository;
         _mapper = mapper;
         _logger = logger;
     }
@@ -179,6 +182,7 @@ public class VoucherService : BaseService<KhanhSkin_BackEnd.Entities.Voucher, Vo
         }
     }
 
+   
 
 
 

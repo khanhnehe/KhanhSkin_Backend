@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using static KhanhSkin_BackEnd.Consts.Enums;
 using KhanhSkin_BackEnd.Dtos.Product;
+using KhanhSkin_BackEnd.Consts;
 
 namespace KhanhSkin_BackEnd.Entities
 {
@@ -35,6 +36,7 @@ namespace KhanhSkin_BackEnd.Entities
 
         public int UsesCount { get; set; } // Số lần 1 user can dùng voucher
         public bool IsActive { get; set; } // Trạng thái hoạt động của voucher
+
 
         public ICollection<ProductVoucher> ProductVouchers { get; set; } = new List<ProductVoucher>();
 

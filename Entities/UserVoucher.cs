@@ -1,4 +1,5 @@
-﻿using System;
+﻿using KhanhSkin_BackEnd.Consts;
+using System;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace KhanhSkin_BackEnd.Entities

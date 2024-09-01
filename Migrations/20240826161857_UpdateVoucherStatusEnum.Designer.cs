@@ -4,6 +4,7 @@ using KhanhSkin_BackEnd.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace KhanhSkin_BackEnd.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240826161857_UpdateVoucherStatusEnum")]
+    partial class UpdateVoucherStatusEnum
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,55 +24,6 @@ namespace KhanhSkin_BackEnd.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Address", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("AddressDetail")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("District")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("DistrictId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsDefault")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("PhoneNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Province")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("ProvinceId")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Ward")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("WardId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Addresses");
-                });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Brand", b =>
                 {
@@ -204,110 +158,6 @@ namespace KhanhSkin_BackEnd.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Favorites");
-                });
-
-            modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Order", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("AddressId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("DeliveryDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("DiscountValue")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("FinalPrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("OrderDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("OrderStatus")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ShippingMethod")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("ShippingPrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TotalPrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("TrackingCode")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("VoucherId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AddressId");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("VoucherId");
-
-                    b.ToTable("Orders");
-                });
-
-            modelBuilder.Entity("KhanhSkin_BackEnd.Entities.OrderItem", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Amount")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Images")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("ItemsPrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("NameVariant")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("OrderId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ProductId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ProductName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("ProductPrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("ProductSalePrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<Guid?>("VariantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrderId");
-
-                    b.HasIndex("ProductId");
-
-                    b.HasIndex("VariantId");
-
-                    b.ToTable("OrderItems");
                 });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Product", b =>
@@ -470,6 +320,9 @@ namespace KhanhSkin_BackEnd.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("Address")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -565,6 +418,9 @@ namespace KhanhSkin_BackEnd.Migrations
                     b.Property<int>("UsesCount")
                         .HasColumnType("int");
 
+                    b.Property<int>("VoucherStatus")
+                        .HasColumnType("int");
+
                     b.Property<int>("VoucherType")
                         .HasColumnType("int");
 
@@ -645,17 +501,6 @@ namespace KhanhSkin_BackEnd.Migrations
                     b.ToTable("ProductTypeCategory");
                 });
 
-            modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Address", b =>
-                {
-                    b.HasOne("KhanhSkin_BackEnd.Entities.User", "User")
-                        .WithMany("Addresses")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Cart", b =>
                 {
                     b.HasOne("KhanhSkin_BackEnd.Entities.User", "User")
@@ -715,56 +560,6 @@ namespace KhanhSkin_BackEnd.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Order", b =>
-                {
-                    b.HasOne("KhanhSkin_BackEnd.Entities.Address", "Address")
-                        .WithMany()
-                        .HasForeignKey("AddressId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("KhanhSkin_BackEnd.Entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("KhanhSkin_BackEnd.Entities.Voucher", "Voucher")
-                        .WithMany()
-                        .HasForeignKey("VoucherId");
-
-                    b.Navigation("Address");
-
-                    b.Navigation("User");
-
-                    b.Navigation("Voucher");
-                });
-
-            modelBuilder.Entity("KhanhSkin_BackEnd.Entities.OrderItem", b =>
-                {
-                    b.HasOne("KhanhSkin_BackEnd.Entities.Order", "Order")
-                        .WithMany("OrderItems")
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("KhanhSkin_BackEnd.Entities.Product", "Product")
-                        .WithMany()
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("KhanhSkin_BackEnd.Entities.ProductVariant", "Variant")
-                        .WithMany()
-                        .HasForeignKey("VariantId");
-
-                    b.Navigation("Order");
-
-                    b.Navigation("Product");
-
-                    b.Navigation("Variant");
                 });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Product", b =>
@@ -926,11 +721,6 @@ namespace KhanhSkin_BackEnd.Migrations
                     b.Navigation("CartItems");
                 });
 
-            modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Order", b =>
-                {
-                    b.Navigation("OrderItems");
-                });
-
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Product", b =>
                 {
                     b.Navigation("CartItems");
@@ -951,8 +741,6 @@ namespace KhanhSkin_BackEnd.Migrations
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.User", b =>
                 {
-                    b.Navigation("Addresses");
-
                     b.Navigation("Cart")
                         .IsRequired();
 
