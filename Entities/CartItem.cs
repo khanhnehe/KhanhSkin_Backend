@@ -7,7 +7,9 @@ namespace KhanhSkin_BackEnd.Entities
 {
     public class CartItem : BaseEntity
     {
+
         [Required]
+
         public Guid ProductId { get; set; }
 
         [ForeignKey("ProductId")]

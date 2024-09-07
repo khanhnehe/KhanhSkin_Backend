@@ -70,19 +70,19 @@ namespace KhanhSkin_BackEnd.Entities
 
             modelBuilder.Entity<Voucher>()
                 .Property(v => v.DiscountValue)
-                .HasColumnType("decimal(18,2)"); 
+                .HasColumnType("decimal(18,2)");
 
-             modelBuilder.Entity<Cart>()
-            .Property(c => c.DiscountValue)
-            .HasColumnType("decimal(18,2)"); 
+            modelBuilder.Entity<Cart>()
+           .Property(c => c.DiscountValue)
+           .HasColumnType("decimal(18,2)");
 
-             modelBuilder.Entity<Cart>()
-            .Property(c => c.FinalPrice)
-             .HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<Cart>()
+           .Property(c => c.FinalPrice)
+            .HasColumnType("decimal(18,2)");
 
             modelBuilder.Entity<Order>()
-       .Property(o => o.DiscountValue)
-       .HasColumnType("decimal(18,2)");
+           .Property(o => o.DiscountValue)
+           .HasColumnType("decimal(18,2)");
 
             modelBuilder.Entity<Order>()
                 .Property(o => o.FinalPrice)
@@ -96,7 +96,6 @@ namespace KhanhSkin_BackEnd.Entities
                 .Property(o => o.TotalPrice)
                 .HasColumnType("decimal(18,2)");
 
-            // Thiết lập kiểu dữ liệu cho các thuộc tính decimal trong OrderItem
             modelBuilder.Entity<OrderItem>()
                 .Property(oi => oi.ItemsPrice)
                 .HasColumnType("decimal(18,2)");
@@ -109,6 +108,7 @@ namespace KhanhSkin_BackEnd.Entities
                 .Property(oi => oi.ProductSalePrice)
                 .HasColumnType("decimal(18,2)");
 
+           
 
             // TL FK và quan hệ 1-n giữa Product và ProductVariant
             modelBuilder.Entity<Product>()
@@ -268,31 +268,49 @@ namespace KhanhSkin_BackEnd.Entities
                 .HasForeignKey<Cart>(c => c.VoucherId);
 
             modelBuilder.Entity<Address>()
-         .HasOne(a => a.User)
-         .WithMany(u => u.Addresses) // Một người dùng có thể có nhiều địa chỉ
-         .HasForeignKey(a => a.UserId)
-         .OnDelete(DeleteBehavior.Cascade); // Xóa địa chỉ nếu người dùng bị xóa
+             .HasOne(a => a.User)
+             .WithMany(u => u.Addresses) // Một người dùng có thể có nhiều địa chỉ
+             .HasForeignKey(a => a.UserId)
+             .OnDelete(DeleteBehavior.Cascade); // Xóa địa chỉ nếu người dùng bị xóa
 
             modelBuilder.Entity<Order>()
-                .HasOne(o => o.Address)
-                .WithMany() // Điều này có nghĩa là một `Address` có thể được liên kết với nhiều `Order` (tùy vào mục đích sử dụng)
-                .HasForeignKey(o => o.AddressId);
+                 .HasOne(o => o.Address)
+                 .WithMany()
+                 .HasForeignKey(o => o.AddressId)
+                 .OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<Order>()
                 .HasOne(o => o.User)
                 .WithMany() // Điều này ngăn chặn multiple cascade paths
                 .HasForeignKey(o => o.UserId)
-                .OnDelete(DeleteBehavior.Restrict); // Hoặc bạn có thể dùng DeleteBehavior.SetNull
+                .OnDelete(DeleteBehavior.NoAction); // Hoặc bạn có thể dùng DeleteBehavior.SetNull
+
+            modelBuilder.Entity<OrderItem>()
+                 .HasOne(oi => oi.Order)
+                 .WithMany(o => o.OrderItems)
+                 .HasForeignKey(oi => oi.OrderId)
+                 .OnDelete(DeleteBehavior.Cascade); // Hoặc SetNull tùy thuộc vào logic của bạn
+
 
             modelBuilder.Entity<Order>()
-                .HasMany(o => o.OrderItems)
-                .WithOne(oi => oi.Order)
-                .HasForeignKey(oi => oi.OrderId);
+                 .HasOne(o => o.Voucher)
+                 .WithMany()
+                 .HasForeignKey(o => o.VoucherId)
+                 .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<OrderItem>()
+                .HasOne(oi => oi.CartItem)
+                .WithMany()
+                .HasForeignKey(oi => oi.CartItemId)
+                .OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<Order>()
-                .HasOne(o => o.Voucher)
-                .WithMany() // Nếu bạn muốn nhiều `Order` có thể sử dụng cùng một `Voucher`
-                .HasForeignKey(o => o.VoucherId);
+                .HasOne(o => o.Cart)
+                .WithMany()
+                .HasForeignKey(o => o.CartId)
+                .OnDelete(DeleteBehavior.NoAction); 
+
+
         }
     }
 }

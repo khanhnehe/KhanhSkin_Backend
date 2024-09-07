@@ -1,4 +1,6 @@
-﻿namespace KhanhSkin_BackEnd.Consts
+﻿using System.ComponentModel;
+
+namespace KhanhSkin_BackEnd.Consts
 {
     public class Enums
     {
@@ -29,10 +31,35 @@
 
         public enum OrderStatus
         {
-            Pending = 1, // Đang chờ xử lý
-            Shipping, // Đang giao hàng
-            Completed, // Đã hoàn thành
-            Canceled // Đã hủy
+            [Description("Đang chờ xử lý")]
+            Pending = 1,
+
+            [Description("Đang giao hàng")]
+            Shipping,
+
+            [Description("Đã hoàn thành")]
+            Completed,
+
+            [Description("Đã hủy")]
+            Canceled
+        }
+
+        public enum ShippingMethod
+        {
+            [Description("Giao hàng nhanh")]
+            FasfDelivery = 1, 
+
+            [Description(" Giao hàng tiết kiệm")]
+            EconomyDelivery 
+        }
+
+        public enum PaymentMethod
+        {
+            [Description("Thanh toán khi nhận hàng")]
+            Receive = 1,
+
+            [Description("Thanh toán VNpay")]
+            Vnpay
         }
     }
 }

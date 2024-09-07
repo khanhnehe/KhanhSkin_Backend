@@ -57,25 +57,26 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
-        [HttpGet("get-cart-by-user-id/{userId}")]
-        public async Task<IActionResult> GetCartByUserId(Guid userId)
+        [HttpGet("get-cart-by-user-id")]
+        public async Task<IActionResult> GetCartByUserId()
         {
             try
             {
-                var cartDto = await _cartService.GetCartByUserId(userId);
+                var cartDto = await _cartService.GetCartByUserId();
                 return Ok(cartDto);
             }
             catch (ApiException ex)
             {
-                _logger.LogError(ex, $"Failed to retrieve cart for user ID {userId}: {ex.Message}");
+                _logger.LogError(ex, "Failed to retrieve cart for the current user: {Message}", ex.Message);
                 throw new ApiException(ex.Message, ex.StatusCode);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"An error occurred while retrieving the cart for user ID {userId}: {ex.Message}");
+                _logger.LogError(ex, "An error occurred while retrieving the cart for the current user: {Message}", ex.Message);
                 throw new ApiException($"An error occurred: {ex.Message}");
             }
         }
+
 
         [HttpPost("apply-voucher")]
         public async Task<IActionResult> ApplyVoucherToCart([FromBody] ApplyVoucherDto input)

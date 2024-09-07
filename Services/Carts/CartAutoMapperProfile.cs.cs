@@ -1,7 +1,8 @@
 ﻿using AutoMapper;
 using KhanhSkin_BackEnd.Dtos.Cart;
 using KhanhSkin_BackEnd.Dtos.CartItem;
-using KhanhSkin_BackEnd.Dtos.Voucher; // Import DTO của Voucher
+using KhanhSkin_BackEnd.Dtos.Voucher;
+using KhanhSkin_BackEnd.Dtos.Order; // Import Order DTOs
 using KhanhSkin_BackEnd.Entities;
 
 namespace KhanhSkin_BackEnd.Services.Carts
@@ -12,7 +13,6 @@ namespace KhanhSkin_BackEnd.Services.Carts
         {
             // Ánh xạ từ Cart entity sang CartDto
             CreateMap<Cart, CartDto>()
-                // Ánh xạ thuộc tính CartItems từ Cart sang CartDto
                 .ForMember(dest => dest.CartItems, opt => opt.MapFrom(src => src.CartItems));
 
             // Ánh xạ từ CartItem entity sang CartItemDto
@@ -20,6 +20,8 @@ namespace KhanhSkin_BackEnd.Services.Carts
 
             // Ánh xạ từ Voucher entity sang VoucherDto
             CreateMap<KhanhSkin_BackEnd.Entities.Voucher, VoucherDto>();
+
+           
         }
     }
 }

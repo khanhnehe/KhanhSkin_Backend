@@ -177,6 +177,7 @@ namespace KhanhSkin_BackEnd.Services.Carts
 
                 var voucher = await _voucherRepository
                     .AsQueryable()
+                    .Include(v => v.ProductVouchers) // Bao gồm ProductVouchers
                     .FirstOrDefaultAsync(v => v.Id == input.VoucherId);
 
                 if (voucher == null)
@@ -220,10 +221,13 @@ namespace KhanhSkin_BackEnd.Services.Carts
                     var productIdsInCart = cart.CartItems.Select(ci => ci.ProductId).ToList();
                     var productIdsInVoucher = voucher.ProductVouchers.Select(pv => pv.ProductId).ToList();
 
-                    var validProducts = await _productRepository
-                        .AsQueryable()
-                        .Where(p => productIdsInVoucher.Contains(p.Id) && productIdsInCart.Contains(p.Id))
-                        .ToListAsync();
+                    //_logger.LogInformation("Product cart: {ProductIdsInCart}", string.Join(", ", productIdsInCart));
+
+                    //_logger.LogInformation("Productvoucher: {ProductIdsInVoucher}", string.Join(", ", productIdsInVoucher));
+
+                    var validProducts = productIdsInCart.Intersect(productIdsInVoucher).ToList();
+
+                    
 
                     if (!validProducts.Any())
                     {
@@ -231,9 +235,11 @@ namespace KhanhSkin_BackEnd.Services.Carts
                         cart.DiscountValue = 0;
                         cart.FinalPrice = cart.TotalPrice;
                         await _cartRepository.UpdateAsync(cart);
+
                         throw new Exception("Voucher chỉ áp dụng cho một số sản phẩm nhất định.");
                     }
                 }
+
 
                 // Tính toán giá trị giảm giá và áp dụng voucher
                 decimal discountValue = 0;
@@ -416,18 +422,26 @@ namespace KhanhSkin_BackEnd.Services.Carts
             }
         }
 
-        public async Task<CartDto> GetCartByUserId(Guid userId)
+        public async Task<CartDto> GetCartByUserId()
         {
             try
             {
+                // Retrieve the current user's ID
+                var userId = _currentUser.Id;
+                if (userId == null)
+                {
+                    throw new Exception("User not authenticated");
+                }
+
+                // Find the cart for the current user
                 var cart = await _cartRepository
                     .AsQueryable()
                     .Include(c => c.CartItems)
-                    .FirstOrDefaultAsync(c => c.UserId == userId);
+                    .FirstOrDefaultAsync(c => c.UserId == userId.Value);
 
                 if (cart == null)
                 {
-                    throw new Exception("Cart not found for the specartitemfied user.");
+                    throw new Exception("Cart not found for the specified user.");
                 }
 
                 var cartDto = _mapper.Map<CartDto>(cart);
@@ -435,10 +449,11 @@ namespace KhanhSkin_BackEnd.Services.Carts
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while retrieving the cart for user ID: {UserId}", userId);
+                _logger.LogError(ex, "An error occurred while retrieving the cart for the current user.");
                 throw new Exception($"An error occurred: {ex.Message}");
             }
         }
+
 
 
 

@@ -7,6 +7,11 @@ namespace KhanhSkin_BackEnd.Entities
 {
     public class OrderItem : BaseEntity
     {
+        public Guid? CartItemId { get; set; }
+
+        [ForeignKey("CartItemId")]
+        public CartItem CartItem { get; set; }
+
         [Required]
         public Guid ProductId { get; set; }
 
@@ -18,25 +23,29 @@ namespace KhanhSkin_BackEnd.Entities
         [ForeignKey("VariantId")]
         public ProductVariant Variant { get; set; }
 
-        public string ProductName { get; set; }
+        [Required]
+        public string ProductName { get; set; } // Lưu trữ tên sản phẩm
 
-        public string? NameVariant { get; set; } // Tên biến thể, có thể null
-
-        public decimal ProductPrice { get; set; } // Giá của sản phẩm hoặc biến thể
-        public decimal ProductSalePrice { get; set; } // Giá bán của sản phẩm hoặc biến thể
-
-        public IList<string> Images { get; set; } = new List<string>();
+        public string? NameVariant { get; set; } // Lưu trữ tên biến thể
 
         [Required]
-        public int Amount { get; set; } = 1;
+        public decimal ProductPrice { get; set; } // Lưu trữ giá sản phẩm
+
+        public decimal ProductSalePrice { get; set; } // Lưu trữ giá bán của sản phẩm
+
+        public IList<string> Images { get; set; } = new List<string>(); // Lưu trữ hình ảnh sản phẩm
 
         [Required]
-        public decimal ItemsPrice { get; set; }
+        public int Amount { get; set; } = 1; // Lưu trữ số lượng sản phẩm
 
         [Required]
-        public Guid OrderId { get; set; } // Khóa ngoại liên kết đến đơn hàng
+        public decimal ItemsPrice { get; set; } // Lưu trữ tổng giá trị của OrderItem
+
+        [Required]
+        public Guid? OrderId { get; set; }
 
         [ForeignKey("OrderId")]
-        public Order Order { get; set; } // Thông tin đơn hàng liên kết
+        public Order Order { get; set; }
     }
+
 }
