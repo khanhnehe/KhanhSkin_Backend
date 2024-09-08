@@ -205,6 +205,16 @@ namespace KhanhSkin_BackEnd.Services.Carts
                     throw new Exception("Voucher không hợp lệ hoặc đã hết hạn.");
                 }
 
+                // Kiểm tra nếu voucher đã hết lượt sử dụng
+                if (voucher.TotalUses == 0)
+                {
+                    cart.VoucherId = null;
+                    cart.DiscountValue = 0;
+                    cart.FinalPrice = cart.TotalPrice;
+                    await _cartRepository.UpdateAsync(cart);
+                    throw new Exception("Voucher đã hết lượt sử dụng.");
+                }
+
                 // Kiểm tra giá trị đơn hàng có đạt yêu cầu tối thiểu để áp dụng voucher hay không
                 if (cart.TotalPrice < voucher.MinimumOrderValue)
                 {

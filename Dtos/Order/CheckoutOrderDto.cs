@@ -16,7 +16,6 @@ namespace KhanhSkin_BackEnd.Dtos.Order
         [Required]
         public Guid AddressId { get; set; } // ID của địa chỉ giao hàng
 
-        public Guid? VoucherId { get; set; } // Mã voucher nếu có sử dụng
 
         [Required]
         public Enums.ShippingMethod ShippingMethod { get; set; } // Phương thức vận chuyển

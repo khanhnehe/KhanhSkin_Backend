@@ -41,23 +41,105 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
-        [HttpPost("apply-voucher-order")]
-        public async Task<IActionResult> ApplyVoucherToOrder([FromBody] ApplyVoucherOrderDto input)
+
+        [HttpGet("get-order-by-user-id")]
+        public async Task<IActionResult> GetOrderByUserId()
         {
             try
             {
-                await _orderService.ApplyVouchertoOrder(input);
-                return Ok(new { message = "Voucher applied successfully to the order." });
+                var orderDto = await _orderService.GetOrderByUserId();
+                return Ok(orderDto);
+            }
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, "Failed to retrieve cart for the current user: {Message}", ex.Message);
+                throw new ApiException(ex.Message, ex.StatusCode);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while applying voucher to order.");
-                return BadRequest(new { message = ex.Message });
+                _logger.LogError(ex, "An error occurred while retrieving the cart for the current user: {Message}", ex.Message);
+                throw new ApiException($" {ex.Message}");
             }
         }
 
-        
+        [HttpPost("change-status")]
+        public async Task<IActionResult> ChangeStatusOrder([FromBody] ChangeStatus input)
+        {
+            try
+            {
+                var orderDto = await _orderService.ChangeStatusOrder(input);
+                return Ok(orderDto);
+            }
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, $"Failed to change order status: {ex.Message}");
+                throw new ApiException(ex.Message, ex.StatusCode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"An error occurred while changing order status: {ex.Message}");
+                throw new ApiException($"{ex.Message}");
+            }
+        }
 
-       
+        [HttpGet("get-all-orders")]
+        public async Task<IActionResult> GetAllOrders()
+        {
+            try
+            {
+                var orderDtos = await _orderService.GetAllOrders();
+                return Ok(orderDtos);
+            }
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, "Failed to retrieve all orders: {Message}", ex.Message);
+                throw new ApiException(ex.Message, ex.StatusCode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while retrieving all orders: {Message}", ex.Message);
+                throw new ApiException($"{ex.Message}");
+            }
+        }
+
+        [HttpPost("get-orders-by-status")]
+        public async Task<IActionResult> GetOrdersByStatus([FromBody] OrderGetRequestInputDto input)
+        {
+            try
+            {
+                var orderDtos = await _orderService.GetOrderByStatus(input);
+                return Ok(orderDtos);
+            }
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, $"Failed to retrieve orders by status: {ex.Message}");
+                throw new ApiException(ex.Message, ex.StatusCode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"An error occurred while retrieving orders by status: {ex.Message}");
+                throw new ApiException($"{ex.Message}");
+            }
+        }
+
+        [HttpPost("get-orders-by-user-status")]
+        public async Task<IActionResult> GetOrderByUserAndStatus([FromBody] OrderGetRequestInputDto input)
+        {
+            try
+            {
+                var orderDtos = await _orderService.GetOrderByUserIdAndStatus(input);
+                return Ok(orderDtos);
+            }
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, $"Failed to retrieve orders by status: {ex.Message}");
+                throw new ApiException(ex.Message, ex.StatusCode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"An error occurred while retrieving orders by status: {ex.Message}");
+                throw new ApiException($"{ex.Message}");
+            }
+        }
     }
 }
