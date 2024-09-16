@@ -24,9 +24,13 @@ namespace KhanhSkin_BackEnd.Controllers
             _logger = logger;
         }
 
-        //[Authorize(Roles = "Admin")]
+
+
+
+        [Authorize(Roles = "Admin")]
+        [Consumes("multipart/form-data")]
         [HttpPost("create-user")]
-        public async Task<IActionResult> Create(CreateUpdateUserDto input)
+        public async Task<IActionResult> Create([FromForm] CreateUpdateUserDto input)
         {
             try
             {
@@ -81,7 +85,8 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
-        [Authorize]
+        [Authorize(Roles = "Admin")]
+        //[Authorize]
         [HttpGet("get-all-users")]
         public async Task<IActionResult> GetAllUsers()
         {
@@ -102,7 +107,7 @@ namespace KhanhSkin_BackEnd.Controllers
 
         [Authorize]
         [HttpPut("update-user/{id}")]
-        public async Task<IActionResult> UpdateUser(Guid id, [FromBody] CreateUpdateUserDto input)
+        public async Task<IActionResult> UpdateUser(Guid id, [FromForm] CreateUpdateUserDto input)
         {
             try
             {

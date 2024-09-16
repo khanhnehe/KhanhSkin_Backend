@@ -25,11 +25,28 @@ using System.Security.Claims;
 using KhanhSkin_BackEnd.Services.Voucher;
 using KhanhSkin_BackEnd.Services.Address;
 using KhanhSkin_BackEnd.Services.Orders;
+using Microsoft.Extensions.Configuration;
+using CloudinaryDotNet;
+using KhanhSkin_BackEnd.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Đọc cấu hình JWT từ appsettings.json
 var jwtSettings = builder.Configuration.GetSection("Jwt");
+
+// Cấu hình Cloudinary từ appsettings.json
+var cloudinarySettings = builder.Configuration.GetSection("Cloudinary");
+var cloudinaryAccount = new Account(
+    cloudinarySettings["CloudName"], // Cloud Name
+    cloudinarySettings["ApiKey"],    // API Key
+    cloudinarySettings["ApiSecret"]  // API Secret
+);
+
+var cloudinary = new Cloudinary(cloudinaryAccount);
+builder.Services.AddSingleton(cloudinary);
+builder.Services.AddSingleton<ICloudinary>(cloudinary);
+
+
 
 // Cấu hình DbContext sử dụng chuỗi kết nối từ appsettings
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -76,9 +93,26 @@ builder.Services.AddScoped<CartService>();
 builder.Services.AddScoped<VoucherService>();
 builder.Services.AddScoped<AddressService>();
 builder.Services.AddScoped<OrderService>();
+builder.Services.AddScoped<CloudinaryService>();
+
 
 // Đăng ký LocationService với HttpClient
 builder.Services.AddHttpClient<LocationService>();
+
+
+// Cấu hình CORS để cho phép kết nối từ Frontend chạy trên localhost:3000
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowSpecificOrigins",
+        builder =>
+        {
+            builder.WithOrigins("http://localhost:3679") // Địa chỉ của Frontend (React/Angular/Vue)
+                   .AllowAnyHeader()
+                   .AllowAnyMethod()
+                   .AllowCredentials(); // Cho phép gửi thông tin xác thực (cookies, headers...)
+        });
+});
+
 
 // Thêm hỗ trợ cho Controllers và API Endpoints với JSON serialization
 builder.Services.AddControllers().AddJsonOptions(options =>
@@ -128,6 +162,8 @@ builder.Services.AddSwaggerGen(c =>
             new List<string>()
         }
     });
+    //c.OperationFilter<KhanhSkin_BackEnd.Helper.SwaggerFileOpen>();
+
 });
 
 // Thêm JWT Authentication
@@ -172,6 +208,9 @@ app.UseApiResponseAndExceptionWrapper(new AutoWrapperOptions
 {
     ExcludePaths = new List<AutoWrapperExcludePath> { new AutoWrapperExcludePath("/api/report/export", ExcludeMode.Strict) }
 });
+
+// Sử dụng CORS trong pipeline để chấp nhận yêu cầu từ Frontend
+app.UseCors("AllowSpecificOrigins");
 
 // Kích hoạt middleware xác thực
 app.UseAuthentication();

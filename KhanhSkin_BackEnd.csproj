@@ -21,6 +21,7 @@
 		<PackageReference Include="AutoMapper" Version="13.0.1" />
 		<PackageReference Include="AutoWrapper" Version="1.1.0" />
 		<PackageReference Include="AutoWrapper.Core" Version="4.5.1" />
+		<PackageReference Include="CloudinaryDotNet" Version="1.26.2" />
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.7" />
 		<PackageReference Include="Microsoft.AspNetCore.Authorization" Version="8.0.7" />
 		<PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.2.0" />
@@ -31,7 +32,7 @@
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="8.0.6" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.6" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Version="8.0.6" />
-		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.7.3" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.6" />
 		<PackageReference Include="System.Linq.Dynamic.Core" Version="1.4.3" />
 	</ItemGroup>

@@ -16,6 +16,10 @@ using System.Text;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Authorization;
 using KhanhSkin_BackEnd.Consts;
+using CloudinaryDotNet;
+using CloudinaryDotNet.Actions;
+using System.IO;
+
 
 namespace KhanhSkin_BackEnd.Services.Users
 {
@@ -26,14 +30,16 @@ namespace KhanhSkin_BackEnd.Services.Users
         private readonly IRepository<User> _userRepository; // Khởi tạo repository cho User
         private readonly IMapper _mapper; // Khởi tạo AutoMapper để ánh xạ giữa các đối tượng
         private readonly ILogger<UserService> _logger; // Khởi tạo logger để log thông tin
-        private readonly ICurrentUser _currentUser; // Khởi tạo dịch vụ CurrentUser để lấy thông tin người dùng hiện tại
+        private readonly ICurrentUser _currentUser;
+        private readonly ICloudinary _cloudinary;
 
         // Constructor nhận các tham số cần thiết cho UserService
         public UserService(
             IConfiguration config,
             IRepository<User> repository,
             IMapper mapper,
-            ILogger<UserService> logger,
+            ILogger<UserService> logger,    
+            ICloudinary cloudinary,
             ICurrentUser currentUser)
             : base(mapper, repository, logger, currentUser) // Gọi constructor của lớp cơ sở với các tham số phù hợp
         {
@@ -41,6 +47,7 @@ namespace KhanhSkin_BackEnd.Services.Users
             _userRepository = repository;
             _mapper = mapper;
             _logger = logger;
+            _cloudinary = cloudinary;
             _currentUser = currentUser;
             _passwordHasher = new PasswordHasher<User>(); // Khởi tạo passwordHasher
         }
@@ -69,7 +76,12 @@ namespace KhanhSkin_BackEnd.Services.Users
             var user = _mapper.Map<User>(input);
             user.Password = hashedPassword;
 
-
+            // Kiểm tra và xóa ảnh cũ nếu có ảnh mới được tải lên
+            if (!string.IsNullOrEmpty(input.ImageFile?.FileName))
+            {
+                await DeleteImageAsync(user.Image); // Xóa ảnh cũ
+                user.Image = await UploadImage(input.ImageFile); // Tải ảnh mới lên
+            }
 
             // Thêm người dùng vào cơ sở dữ liệu
             await _userRepository.CreateAsync(user);
@@ -79,6 +91,59 @@ namespace KhanhSkin_BackEnd.Services.Users
             // Trả về đối tượng User đã tạo
             return user;
         }
+
+        public async Task DeleteImageAsync(string imageUrl)
+        {
+            if (!string.IsNullOrEmpty(imageUrl))
+            {
+                var publicId = Path.GetFileNameWithoutExtension(imageUrl);
+                var deletionParams = new DeletionParams(publicId);
+                var deletionResult = await _cloudinary.DestroyAsync(deletionParams);
+
+                if (deletionResult.Error != null)
+                {
+                    _logger.LogError("Lỗi khi xóa ảnh từ Cloudinary: {0}", deletionResult.Error.Message);
+                    throw new ApiException($"Lỗi khi xóa ảnh: {deletionResult.Error.Message}");
+                }
+            }
+        }
+
+        private async Task<string> UploadImage(IFormFile imageFile)
+        {
+            // Kiểm tra dung lượng và định dạng file
+            if (imageFile.Length == 0 || !imageFile.ContentType.StartsWith("image/"))
+            {
+                throw new ApiException("File ảnh không hợp lệ.");
+            }
+
+            // Xử lý tên file để tránh lỗi ký tự đặc biệt
+            var sanitizedFileName = Path.GetFileNameWithoutExtension(imageFile.FileName)
+                                   .Replace(" ", "_") // Thay thế khoảng trắng bằng dấu gạch dưới
+                                   .Replace("?", ""); // Loại bỏ ký tự không hợp lệ
+
+            using (var stream = imageFile.OpenReadStream())
+            {
+                var uploadParams = new ImageUploadParams()
+                {
+                    File = new FileDescription(sanitizedFileName, stream)
+                };
+
+                var uploadResult = await _cloudinary.UploadAsync(uploadParams);
+
+                if (uploadResult == null || uploadResult.Error != null)
+                {
+                    _logger.LogError("Lỗi Cloudinary: {0}", uploadResult.Error?.Message);
+                    throw new ApiException($"Lỗi khi tải ảnh lên: {uploadResult.Error?.Message}");
+                }
+
+                // Trả về URL an toàn của ảnh
+                return uploadResult.SecureUrl.AbsoluteUri;
+            }
+        }
+
+
+       
+
 
         public async Task<bool> ChangePassword(string email, string currentPassword, string newPassword)
         {
@@ -137,7 +202,11 @@ namespace KhanhSkin_BackEnd.Services.Users
 
             // Cập nhật thông tin user từ input
             _mapper.Map(input, user);
-            // Lưu ý: Không cập nhật mật khẩu ở đây. Nếu cần thay đổi mật khẩu, nên có một phương thức riêng biệt.
+
+            if (input.ImageFile != null)
+            {
+                user.Image = await UploadImage(input.ImageFile);
+            }
 
             await _userRepository.UpdateAsync(user);
             await _userRepository.SaveChangesAsync();
@@ -158,8 +227,16 @@ namespace KhanhSkin_BackEnd.Services.Users
                     throw new ApiException("Không tìm thấy người dùng.");
                 }
 
+                // Kiểm tra và xóa ảnh nếu người dùng có ảnh
+                if (!string.IsNullOrEmpty(user.Image))
+                {
+                    await DeleteImageAsync(user.Image); // Gọi phương thức DeleteImageAsync để xóa ảnh
+                }
+
                 // Xóa người dùng và lưu thay đổi
                 await _userRepository.DeleteByEntityAsync(user);
+                await _userRepository.SaveChangesAsync(); // Lưu các thay đổi vào cơ sở dữ liệu
+
                 return user;
             }
             catch (Exception ex)
@@ -167,8 +244,8 @@ namespace KhanhSkin_BackEnd.Services.Users
                 _logger.LogError(ex, "Error deleting user: {UserId}", id);
                 throw;
             }
-
         }
+
 
 
 

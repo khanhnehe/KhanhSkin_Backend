@@ -24,7 +24,7 @@ namespace KhanhSkin_BackEnd.Dtos.User
         public string Password { get; set; }
 
 
-        public string? Image { get; set; }
+        public IFormFile? ImageFile { get; set; }
 
 
         [Required(ErrorMessage = "Vui lòng chọn vai trò!")]
