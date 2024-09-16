@@ -76,11 +76,9 @@ namespace KhanhSkin_BackEnd.Services.Users
             var user = _mapper.Map<User>(input);
             user.Password = hashedPassword;
 
-            // Kiểm tra và xóa ảnh cũ nếu có ảnh mới được tải lên
-            if (!string.IsNullOrEmpty(input.ImageFile?.FileName))
+            if (input.ImageFile != null)
             {
-                await DeleteImageAsync(user.Image); // Xóa ảnh cũ
-                user.Image = await UploadImage(input.ImageFile); // Tải ảnh mới lên
+                user.Image = await UploadImage(input.ImageFile);
             }
 
             // Thêm người dùng vào cơ sở dữ liệu
@@ -203,9 +201,16 @@ namespace KhanhSkin_BackEnd.Services.Users
             // Cập nhật thông tin user từ input
             _mapper.Map(input, user);
 
+            // Kiểm tra và xóa ảnh cũ nếu có ảnh mới được tải lên hoặc ảnh hiện tại bị bỏ ra
+            if (!string.IsNullOrEmpty(user.Image) && (input.ImageFile != null || input.ImageFile == null))
+            {
+                await DeleteImageAsync(user.Image); // Xóa ảnh cũ
+                user.Image = null; // Đặt lại thuộc tính Image của user
+            }
+
             if (input.ImageFile != null)
             {
-                user.Image = await UploadImage(input.ImageFile);
+                user.Image = await UploadImage(input.ImageFile); // Tải ảnh mới lên
             }
 
             await _userRepository.UpdateAsync(user);
@@ -213,8 +218,6 @@ namespace KhanhSkin_BackEnd.Services.Users
 
             return user; // Trả về đối tượng User sau khi đã cập nhật
         }
-
-
 
         public override async Task<User> Delete(Guid id)
         {
