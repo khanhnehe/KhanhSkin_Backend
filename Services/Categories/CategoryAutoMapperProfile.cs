@@ -16,6 +16,7 @@ namespace KhanhSkin_BackEnd.Services.Categories
 
             // Ánh xạ từ DTO sang Entity
             CreateMap<CategoryDto, Category>()
+                 .ForMember(dest => dest.Id, opt => opt.Ignore()) // Loại trừ Id khỏi quá trình ánh xạ
                 .ForMember(dest => dest.ProductTypes, opt => opt.Ignore())
                 .ForMember(dest => dest.Products, opt => opt.Ignore());
 

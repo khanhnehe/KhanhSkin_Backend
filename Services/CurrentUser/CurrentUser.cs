@@ -61,5 +61,20 @@ namespace KhanhSkin_BackEnd.Services.CurrentUser
                 return null;
             }
         }
+
+        public string? Image
+        {
+            get
+            {
+                var image = _httpContextAccessor?.HttpContext?.User?.FindFirstValue("Image");
+                if (!string.IsNullOrEmpty(image))
+                {
+                    _logger.LogInformation($"User full image found: {image}");
+                    return image;
+                }
+                _logger.LogWarning("User full image not found");
+                return null;
+            }
+        }
     }
 }

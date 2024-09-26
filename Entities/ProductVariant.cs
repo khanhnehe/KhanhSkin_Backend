@@ -14,12 +14,14 @@ namespace KhanhSkin_BackEnd.Entities
         public decimal? SalePriceVariant { get; set; }
         public string SKUVariant { get; set; }
         public string ImageUrl { get; set; }
+        public bool IsDeleted { get; set; } = false;
 
 
         // Foreign key
         [ForeignKey("ProductId")]
         public Guid ProductId { get; set; }
         public Product Product { get; set; }
+        public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 
         public ICollection<CartItem> CartItems { get; set; } = new List<CartItem>(); // Thêm thuộc tính CartItems
 

@@ -28,6 +28,7 @@ namespace KhanhSkin_BackEnd.Services.Products
         private readonly IRepository<ProductVariant> _productVariantRepository;
         private readonly IMapper _mapper;
         private readonly ILogger<ProductService> _logger;
+        private readonly CloudinaryService _cloudinaryService;
 
         public ProductService(
             IConfiguration config,
@@ -38,6 +39,7 @@ namespace KhanhSkin_BackEnd.Services.Products
             IRepository<ProductVariant> productVariantRepository,
             IMapper mapper,
             ILogger<ProductService> logger,
+            CloudinaryService cloudinaryService,
             ICurrentUser currentUser)
             : base(mapper, repository, logger, currentUser)
         {
@@ -47,6 +49,7 @@ namespace KhanhSkin_BackEnd.Services.Products
             _productTypeRepository = productTypeRepository;
             _brandRepository = brandRepository;
             _productVariantRepository = productVariantRepository;
+            _cloudinaryService = cloudinaryService;
             _mapper = mapper;
             _logger = logger;
         }
@@ -127,7 +130,7 @@ namespace KhanhSkin_BackEnd.Services.Products
                     throw new ApiException("Tổng số lượng biến thể phải bằng với Quantity của sản phẩm.");
                 }
 
-              // Kt sự trùng lặp trong ds biến thể đầu vào
+                // Kt sự trùng lặp trong ds biến thể đầu vào
                 var variantSKUs = new HashSet<string>();
                 foreach (var variantDto in input.Variants)
                 {
@@ -352,23 +355,43 @@ namespace KhanhSkin_BackEnd.Services.Products
         }
 
 
-
         public override async Task<Product> Delete(Guid id)
         {
-            var product = await _productRepository.AsQueryable().FirstOrDefaultAsync(p => p.Id == id);
+            // Lấy thông tin sản phẩm bao gồm cả các biến thể và OrderItems
+            var product = await _productRepository.AsQueryable()
+                                  .Include(p => p.Variants)
+                                  .Include(p => p.OrderItems) // Bao gồm OrderItems để kiểm tra tham chiếu
+                                  .FirstOrDefaultAsync(p => p.Id == id);
+
             if (product == null)
             {
                 throw new ApiException("Product not found.");
             }
 
-            await _productRepository.DeleteAsync(id);
+            
 
+            // Đánh dấu sản phẩm là đã xóa (xóa mềm)
+            product.IsDeleted = true;
+
+            // Đánh dấu tất cả các biến thể của sản phẩm là đã xóa
+            foreach (var variant in product.Variants)
+            {
+                variant.IsDeleted = true;
+            }
+
+            // Lưu thay đổi vào cơ sở dữ liệu
+            await _productRepository.UpdateAsync(product);
+            await _productRepository.SaveChangesAsync();
+
+            // Trả về đối tượng product sau khi xóa mềm
             return product;
         }
+
 
         public override async Task<List<ProductDto>> GetAll()
         {
             var products = await _productRepository.AsQueryable()
+                .Where(p => p.IsDeleted == false) // Chỉ lấy những sản phẩm chưa bị xóa mềm
                 .Include(p => p.Brand)
                 .Include(p => p.Categories)
                 .Include(p => p.ProductTypes)
@@ -377,6 +400,7 @@ namespace KhanhSkin_BackEnd.Services.Products
 
             return _mapper.Map<List<ProductDto>>(products);
         }
+
 
 
         public override async Task<ProductDto> Get(Guid id)

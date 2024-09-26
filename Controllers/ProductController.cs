@@ -20,7 +20,7 @@ namespace KhanhSkin_BackEnd.Controllers
         }
 
         [HttpPost("create-product")]
-        public async Task<IActionResult> Create(CreateUpdateProductDto input)
+        public async Task<IActionResult> Create([FromBody]  CreateUpdateProductDto input)
         {
             try
             {
@@ -79,22 +79,22 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
-        [HttpPut("update-product/{productId}")]
-        public async Task<IActionResult> Update(Guid productId, [FromBody] CreateUpdateProductDto input)
+        [HttpPut("update-product/{id}")]
+        public async Task<IActionResult> Update(Guid id, [FromForm] CreateUpdateProductDto input)
         {
             try
             {
-                var updatedProduct = await _productService.Update(productId, input);
+                var updatedProduct = await _productService.Update(id, input);
                 return Ok(updatedProduct);
             }
             catch (ApiException ex)
             {
-                _logger.LogError(ex, $"Failed to update product with ID {productId}: {ex.Message}");
+                _logger.LogError(ex, $"Failed to update produc: {ex.Message}");
                 return StatusCode(ex.StatusCode, ex.Message);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"An error occurred while updating the product with ID {productId}: {ex.Message}");
+                _logger.LogError(ex, $"An error occurred while updating the product: {ex.Message}");
                 throw new ApiException($"Có lỗi xảy ra: {ex.Message}");
             }
         }

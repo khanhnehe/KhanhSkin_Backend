@@ -9,6 +9,8 @@ namespace KhanhSkin_BackEnd.Entities
         [Required(ErrorMessage = "Vui lòng nhập tên thương hiệu!")]
         public string BrandName { get; set; }
 
+        public string? Image { get; set; }
+
         // Khởi tạo ICollection để tránh lỗi null reference
         public ICollection<Product> Products { get; set; } = new List<Product>();
     }

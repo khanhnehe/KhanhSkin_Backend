@@ -41,22 +41,102 @@ namespace KhanhSkin_BackEnd.Services.Categories
         {
             return await _categoryRepository.AsQueryable().AnyAsync(u => u.CategoryName == categoryName);
         }
-
-        // Existing constructor and other methods remain unchanged
-
         public override async Task<Category> Create(CategoryDto input)
         {
-            if (await CheckCategoryExist(input.CategoryName))
+            try
             {
-                throw new ApiException("Category already exists.");
+                // Kiểm tra xem danh mục đã tồn tại chưa
+                if (await CheckCategoryExist(input.CategoryName))
+                {
+                    throw new ApiException("Category already exists.");
+                }
+
+                // Tạo đối tượng Category mới
+                var category = _mapper.Map<Category>(input);
+
+                // Lấy danh sách ProductTypes từ cơ sở dữ liệu dựa trên ProductTypeIds
+                var productTypes = await _productTypeRepository.AsQueryable()
+                    .Where(pt => input.ProductTypeIds.Contains(pt.Id))
+                    .ToListAsync();
+
+                // Kiểm tra xem tất cả ProductTypes có tồn tại không
+                if (productTypes.Count != input.ProductTypeIds.Count)
+                {
+                    throw new ApiException("Some ProductTypes not found.");
+                }
+
+                // Thêm ProductTypes vào Category
+                foreach (var productType in productTypes)
+                {
+                    category.ProductTypes.Add(productType);
+                }
+
+                // Lưu Category mới vào cơ sở dữ liệu
+                await _categoryRepository.CreateAsync(category);
+                await _categoryRepository.SaveChangesAsync();
+
+                return category;
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating category: {CategoryName}", input.CategoryName);
+                throw;
+            }
+        }
 
-            var category = _mapper.Map<Category>(input);
+        public override async Task<Category> Update(Guid id, CategoryDto input)
+        {
+            try
+            {
+                // Find the category in the database
+                var category = await _categoryRepository.AsQueryable()
+                    .Include(c => c.ProductTypes)
+                    .FirstOrDefaultAsync(c => c.Id == id);
 
-            await _categoryRepository.CreateAsync(category);
-            await _categoryRepository.SaveChangesAsync();
+                if (category == null)
+                {
+                    throw new ApiException("Category not found");
+                }
 
-            return category; // Return the Category entity directly
+                // Check if the category name already exists (if it's changed)
+                if (!string.Equals(category.CategoryName, input.CategoryName, StringComparison.OrdinalIgnoreCase)
+                    && await CheckCategoryExist(input.CategoryName))
+                {
+                    throw new ApiException("Danh mục đã được sử dụng.");
+                }
+
+                // Update category properties
+                _mapper.Map(input, category);
+
+                // Update associated ProductTypes
+                var productTypes = await _productTypeRepository.AsQueryable()
+                    .Where(pt => input.ProductTypeIds.Contains(pt.Id))
+                    .ToListAsync();
+
+                if (productTypes.Count != input.ProductTypeIds.Count)
+                {
+                    throw new ApiException("Some ProductTypes not found.");
+                }
+
+                // Clear existing ProductTypes and add the new ones
+                category.ProductTypes.Clear();
+                foreach (var productType in productTypes)
+                {
+                    category.ProductTypes.Add(productType);
+                }
+
+                // Save changes to the database
+                await _categoryRepository.UpdateAsync(category);
+                await _categoryRepository.SaveChangesAsync();
+
+                // Map the updated category to DTO and return
+                return category;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting user: {UserId}", id);
+                throw;
+            }
         }
 
 
@@ -64,22 +144,19 @@ namespace KhanhSkin_BackEnd.Services.Categories
         {
             try
             {
-                // Tìm Category từ cơ sở dữ liệu
                 var category = await _categoryRepository.AsQueryable().Include(c => c.ProductTypes).FirstOrDefaultAsync(c => c.Id == categoryId);
                 if (category == null)
                 {
                     throw new ApiException("Category not found.");
                 }
 
-                // Tìm danh sách ProductType từ cơ sở dữ liệu
                 var productTypes = await _productTypeRepository.AsQueryable().Where(pt => productTypeIds.Contains(pt.Id)).ToListAsync();
                 if (productTypes.Count != productTypeIds.Count)
                 {
                     throw new ApiException("Some ProductTypes not found.");
                 }
 
-                // Cập nhật danh sách ProductTypes của Category
-                // Xóa những ProductTypes không có trong danh sách mới
+                
                 category.ProductTypes.Clear();
 
                 // Thêm từng ProductType vào danh sách của Category
@@ -147,28 +224,7 @@ namespace KhanhSkin_BackEnd.Services.Categories
 
 
 
-        public override async Task<Category> Update(Guid id, CategoryDto input)
-        {
-            var category = await _categoryRepository.AsQueryable().FirstOrDefaultAsync(c => c.Id == id);
-            if (category == null)
-            {
-                throw new ApiException("Category not found");
-            }
-
-            if (!string.Equals(category.CategoryName, input.CategoryName, StringComparison.OrdinalIgnoreCase) && await CheckCategoryExist(input.CategoryName))
-            {
-                throw new ApiException("Danh mục đã được sử dụng.");
-            }
-
-            _mapper.Map(input, category);
-
-
-            await _categoryRepository.UpdateAsync(category);
-            await _categoryRepository.SaveChangesAsync();
-
-            return category;
-        }
-
+       
 
         // Phương thức thêm ProductType vào Category
         //public async task<categorydto> addproducttypes(guid categoryid, list<guid> producttypeids)

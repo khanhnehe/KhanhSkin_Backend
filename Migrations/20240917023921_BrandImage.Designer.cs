@@ -4,6 +4,7 @@ using KhanhSkin_BackEnd.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace KhanhSkin_BackEnd.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240917023921_BrandImage")]
+    partial class BrandImage
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -286,9 +289,6 @@ namespace KhanhSkin_BackEnd.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
@@ -346,9 +346,6 @@ namespace KhanhSkin_BackEnd.Migrations
                     b.Property<string>("ImageUrl")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
 
                     b.Property<string>("NameVariant")
                         .IsRequired()
@@ -757,15 +754,14 @@ namespace KhanhSkin_BackEnd.Migrations
                         .IsRequired();
 
                     b.HasOne("KhanhSkin_BackEnd.Entities.Product", "Product")
-                        .WithMany("OrderItems")
+                        .WithMany()
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("KhanhSkin_BackEnd.Entities.ProductVariant", "Variant")
-                        .WithMany("OrderItems")
-                        .HasForeignKey("VariantId")
-                        .OnDelete(DeleteBehavior.NoAction);
+                        .WithMany()
+                        .HasForeignKey("VariantId");
 
                     b.Navigation("CartItem");
 
@@ -973,8 +969,6 @@ namespace KhanhSkin_BackEnd.Migrations
 
                     b.Navigation("Favorites");
 
-                    b.Navigation("OrderItems");
-
                     b.Navigation("ProductVouchers");
 
                     b.Navigation("Reviews");
@@ -985,8 +979,6 @@ namespace KhanhSkin_BackEnd.Migrations
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.ProductVariant", b =>
                 {
                     b.Navigation("CartItems");
-
-                    b.Navigation("OrderItems");
                 });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.User", b =>

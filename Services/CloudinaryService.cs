@@ -1,10 +1,12 @@
-﻿namespace KhanhSkin_BackEnd.Services
-{
-    using CloudinaryDotNet;
-    using CloudinaryDotNet.Actions;
-    using System.IO;
-    using System.Threading.Tasks;
+﻿using CloudinaryDotNet;
+using CloudinaryDotNet.Actions;
+using System;
+using System.IO;
+using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
+namespace KhanhSkin_BackEnd.Services
+{
     public class CloudinaryService
     {
         private readonly Cloudinary _cloudinary;
@@ -18,29 +20,35 @@
         {
             var uploadParams = new ImageUploadParams
             {
-                // Sử dụng FileDescription với luồng (Stream)
                 File = new FileDescription(publicId, imageStream),
                 PublicId = publicId
             };
-
-            var uploadResult = await _cloudinary.UploadAsync(uploadParams);
-            return uploadResult;
+            return await _cloudinary.UploadAsync(uploadParams);
         }
 
         public async Task<DeletionResult> DeleteImageAsync(string publicId)
         {
             var deletionParams = new DeletionParams(publicId);
-            var deletionResult = await _cloudinary.DestroyAsync(deletionParams);
-            return deletionResult;
+            return await _cloudinary.DestroyAsync(deletionParams);
         }
 
         public string GetImageUrl(string publicId)
-{
-    var url = _cloudinary.Api.UrlImgUp
-        .BuildUrl(publicId); // Không sử dụng tham số 'transformation'
-    return url;
-}
+        {
+            return _cloudinary.Api.UrlImgUp.BuildUrl(publicId);
+        }
 
+        public bool ValidateCloudinaryUrl(string url)
+        {
+            // Kiểm tra xem URL có phải là URL Cloudinary hợp lệ hay không
+            var cloudinaryUrlPattern = @"^https://res\.cloudinary\.com/.*$";
+            return Regex.IsMatch(url, cloudinaryUrlPattern);
+        }
+
+        public string ExtractPublicIdFromUrl(string url)
+        {
+            // Trích xuất public ID từ URL Cloudinary
+            var match = Regex.Match(url, @"/v\d+/(?<publicId>.+)\.[a-zA-Z]+$");
+            return match.Success ? match.Groups["publicId"].Value : null;
+        }
     }
-
 }

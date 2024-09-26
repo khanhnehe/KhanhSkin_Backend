@@ -25,7 +25,7 @@ namespace KhanhSkin_BackEnd.Controllers
 
         [Authorize(Roles = "Admin")]
         [HttpPost("create-brand")]
-        public async Task<IActionResult> Create(BrandDto input)
+        public async Task<IActionResult> Create([FromForm] BrandDto input)
         {
             try
             {
@@ -44,7 +44,7 @@ namespace KhanhSkin_BackEnd.Controllers
 
         [Authorize(Roles = "Admin")]
         [HttpPut("Update-brand/{id}")]
-        public async Task<IActionResult> Update(Guid id, BrandDto input)
+        public async Task<IActionResult> Update(Guid id, [FromForm] BrandDto input)
         {
             try
             {

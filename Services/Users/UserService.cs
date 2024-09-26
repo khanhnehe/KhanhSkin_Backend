@@ -280,6 +280,7 @@ namespace KhanhSkin_BackEnd.Services.Users
         new Claim(ClaimTypes.Email, user.Email),
         new Claim(ClaimTypes.Role, user.Role.ToString()), // Chuyển đổi Role sang string
         new Claim("FullName", user.FullName ?? string.Empty),
+        new Claim("Image", user.Image ?? string.Empty),
     };
 
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));

@@ -8,6 +8,10 @@ namespace KhanhSkin_BackEnd.Dtos.Brand
         [Required(ErrorMessage = "Vui lòng nhập tên thương hiệu!")]
         public string BrandName { get; set; }
 
+        public string? Image { get; set; }
+
+        public IFormFile? ImageFile { get; set; }
+
         // Sử dụng DTO cho Product nếu bạn muốn trả về thông tin sản phẩm liên quan
         // Điều này giúp tránh việc trả về quá nhiều thông tin không cần thiết và tăng tính bảo mật
         // public ICollection<ProductDto> Products { get; set; }

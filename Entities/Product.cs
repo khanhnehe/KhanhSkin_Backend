@@ -50,11 +50,13 @@ namespace KhanhSkin_BackEnd.Entities
         public decimal AverageRating { get; set; }
 
         public IList<string> Images { get; set; } = new List<string>(); // Chuyển sang IList<string>
+        public bool IsDeleted { get; set; } = false;
 
         public ICollection<CartItem> CartItems { get; set; } = new List<CartItem>(); // Thêm thuộc tính CartItems
 
         // Thuộc tính mới để lưu các Voucher áp dụng cho sản phẩm này
         public ICollection<ProductVoucher> ProductVouchers { get; set; } = new List<ProductVoucher>();
+        public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 
     }
 }
