@@ -114,7 +114,8 @@ namespace KhanhSkin_BackEnd.Entities
             modelBuilder.Entity<Product>()
                 .HasMany(p => p.Variants)
                 .WithOne(v => v.Product)
-                .HasForeignKey(v => v.ProductId);
+                .HasForeignKey(v => v.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // TL FK và quan hệ 1-n giữa Product và Review
             modelBuilder.Entity<Product>()
@@ -216,9 +217,11 @@ namespace KhanhSkin_BackEnd.Entities
 
             // quan hệ 1-n giữa Brand và Product
             modelBuilder.Entity<Brand>()
-                .HasMany(b => b.Products)
-                .WithOne(p => p.Brand)
-                .HasForeignKey(p => p.BrandId);
+             .HasMany(b => b.Products)
+             .WithOne(p => p.Brand)
+             .HasForeignKey(p => p.BrandId)
+             .OnDelete(DeleteBehavior.NoAction);
+
 
             // quan hệ 1-1 giữa User và Cart
             modelBuilder.Entity<User>()

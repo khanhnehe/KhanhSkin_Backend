@@ -54,7 +54,9 @@ namespace KhanhSkin_BackEnd.Services.Products
 
             // Ánh xạ từ thực thể Product sang ProductSummaryDto
             CreateMap<Product, ProductOutstandingDto>();
-                
+
+            CreateMap<ProductVariantDto, CreateUpdateProductVariantDto>();
+
         }
     }
 }
