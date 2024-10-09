@@ -1,23 +1,38 @@
 ﻿namespace KhanhSkin_BackEnd.Share.Dtos
 {
-    // Định nghĩa một class có tên là BaseGetRequestInput
     public class BaseGetRequestInput
     {
-        // Thuộc tính FreeTextSearch có kiểu dữ liệu là string và có thể chứa giá trị null.
-        // Dùng để chứa văn bản tìm kiếm tự do, ví dụ như tìm kiếm sản phẩm theo tên.
+        /// <summary>
+        /// Tìm kiếm văn bản tự do, ví dụ: tên sản phẩm, tên danh mục
+        /// </summary>
         public string? FreeTextSearch { get; set; }
 
-        // Thuộc tính PageIndex có kiểu dữ liệu là int và có thể chứa giá trị null.
-        // Dùng để xác định chỉ số của trang hiện tại mà người dùng muốn lấy dữ liệu.
-        // Thông thường, trang đầu tiên có chỉ số là 0 hoặc 1 tùy vào cách bạn định nghĩa.
-        public int? PageIndex { get; set; }
+        /// <summary>
+        /// Chỉ số của trang hiện tại. Trang đầu tiên thường là 1.
+        /// </summary>
+        public int PageIndex { get; set; } = 1; // Giá trị mặc định là 1
 
-        // Thuộc tính PageSize có kiểu dữ liệu là int và có thể chứa giá trị null.
-        // Dùng để xác định số lượng bản ghi trên mỗi trang mà người dùng muốn lấy.
-        public int? PageSize { get; set; }
+        /// <summary>
+        /// Kích thước trang, số lượng bản ghi trên mỗi trang
+        /// </summary>
+        public int PageSize { get; set; } = 10; // Giá trị mặc định là 10
 
-        // Thuộc tính Sort có kiểu dữ liệu là string và có thể chứa giá trị null.
-        // Dùng để xác định cách thức sắp xếp dữ liệu, ví dụ như "name_asc" hoặc "price_desc".
-        public string? Sort { get; set; }
+        /// <summary>
+        /// Tên trường dữ liệu để sắp xếp, ví dụ: "Price", "CreatedDate", "Purchases"
+        /// </summary>
+        public string? SortBy { get; set; }
+
+        /// <summary>
+        /// Hướng sắp xếp: true = Ascending (tăng dần), false = Descending (giảm dần)
+        /// </summary>
+        public bool IsAscending { get; set; } = true; // Mặc định là sắp xếp tăng dần
+
+        /// <summary>
+        /// Hàm xác định điều kiện hợp lệ cho một yêu cầu (có thể override ở các lớp con)
+        /// </summary>
+        public virtual bool IsValid()
+        {
+            return PageIndex > 0 && PageSize > 0; // Kiểm tra điều kiện hợp lệ
+        }
     }
 }

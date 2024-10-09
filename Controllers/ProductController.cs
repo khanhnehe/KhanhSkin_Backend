@@ -119,28 +119,49 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
-        [HttpPost("filter-products")]
-        public async Task<IActionResult> CreateFilteredQuery([FromQuery] ProductGetRequestInputDto input)
+        [HttpGet("get-filter-products")]
+        public async Task<IActionResult> GetFilteredProducts([FromQuery] ProductGetRequestInputDto input)
         {
             try
             {
-                var query = _productService.CreateFilteredQuery(input);
-
-                var products = await query.ToListAsync();
-
-                return Ok(products);
+                // Sử dụng phương thức CreateFilteredQuery từ service để lọc sản phẩm
+                var products = await _productService.GetFilteredProducts(input);
+                return Ok(products); // Trả về danh sách sản phẩm đã lọc
             }
             catch (ApiException ex)
             {
                 _logger.LogError(ex, $"Failed to filter products: {ex.Message}");
-                throw new ApiException(ex.Message, ex.StatusCode);
+                return StatusCode(ex.StatusCode, new { error = ex.Message }); // Trả về lỗi tùy chỉnh
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"An error occurred while filtering products: {ex.Message}");
-                throw new ApiException($"Có lỗi xảy ra: {ex.Message}");
+                return StatusCode(500, new { error = $"Có lỗi xảy ra: {ex.Message}" }); // Trả về lỗi chung
             }
         }
+
+        [HttpPost("post-filte-products")]
+        public async Task<IActionResult> PostFilteredProducts([FromBody] ProductGetRequestInputDto input)
+        {
+            try
+            {
+                // Sử dụng phương thức CreateFilteredQuery từ service để lọc sản phẩm
+                var products = await _productService.GetFilteredProducts(input);
+                return Ok(products); // Trả về danh sách sản phẩm đã lọc
+            }
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, $"Failed to filter products: {ex.Message}");
+                return StatusCode(ex.StatusCode, new { error = ex.Message }); // Trả về lỗi tùy chỉnh
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"An error occurred while filtering products: {ex.Message}");
+                return StatusCode(500, new { error = $"Có lỗi xảy ra: {ex.Message}" }); // Trả về lỗi chung
+            }
+        }
+
+
 
         [HttpGet("search-product")]
         public async Task<IActionResult> Search([FromQuery] string keyword)

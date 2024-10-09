@@ -300,24 +300,24 @@ namespace KhanhSkin_BackEnd.Services.Users
 
 
 
-        public override IQueryable<User> CreateFilteredQuery(UserGetRequestInputDto input)
-        {
-            var query = base.CreateFilteredQuery(input);
+        //public override IQueryable<User> CreateFilteredQuery(UserGetRequestInputDto input)
+        //{
+        //    var query = base.CreateFilteredQuery(input);
 
-            if (!string.IsNullOrEmpty(input.FreeTextSearch))
-            {
-                input.FreeTextSearch = input.FreeTextSearch.Trim().ToLower();
-                query = query.Where(a => a.FullName.ToLower().Contains(input.FreeTextSearch)
-                                         || a.Email.ToLower().Contains(input.FreeTextSearch)
-                                         || a.PhoneNumber.ToLower().Contains(input.FreeTextSearch));
-            }
+        //    if (!string.IsNullOrEmpty(input.FreeTextSearch))
+        //    {
+        //        input.FreeTextSearch = input.FreeTextSearch.Trim().ToLower();
+        //        query = query.Where(a => a.FullName.ToLower().Contains(input.FreeTextSearch)
+        //                                 || a.Email.ToLower().Contains(input.FreeTextSearch)
+        //                                 || a.PhoneNumber.ToLower().Contains(input.FreeTextSearch));
+        //    }
 
-            if (input.Role.HasValue)
-            {
-                query = query.Where(a => a.Role == input.Role.Value);
-            }
+        //    if (input.Role.HasValue)
+        //    {
+        //        query = query.Where(a => a.Role == input.Role.Value);
+        //    }
 
-            return query;
-        }
+        //    return query;
+        //}
     }
 }

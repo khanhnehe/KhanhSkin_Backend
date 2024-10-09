@@ -35,37 +35,37 @@ namespace KhanhSkin_BackEnd.Services
             _logger = logger;
             _currentUser = currentUser;
         }
-
         public virtual async Task<PagedViewModel<TDto>> GetListPaged(TGetInput input)
         {
             // Tạo một truy vấn lọc dựa trên các điều kiện được cung cấp trong `input`.
             var query = CreateFilteredQuery(input);
 
-            // Đếm tổng số bản ghi thỏa mãn điều kiện truy vấn để sử dụng cho việc phân trang.
+            // Đếm tổng số bản ghi thỏa mãn điều kiện truy vấn để sử dụng cho việc trả về dữ liệu.
             var totalCount = await query.CountAsync();
 
-            // Kiểm tra xem có yêu cầu sắp xếp không. Nếu có, áp dụng sắp xếp dựa trên chuỗi `input.Sort`.
-            if (!string.IsNullOrWhiteSpace(input.Sort))
+            // Kiểm tra xem có yêu cầu sắp xếp không. Nếu có, áp dụng sắp xếp dựa trên `SortBy` và `IsAscending`.
+            if (!string.IsNullOrWhiteSpace(input.SortBy))
             {
-                query = query.OrderBy(input.Sort);
+                // Tạo chuỗi sắp xếp dựa trên SortBy và IsAscending
+                var sortingOrder = input.IsAscending ? "ascending" : "descending";
+                var sortingQuery = $"{input.SortBy} {sortingOrder}";
+
+                // Sử dụng Dynamic LINQ để sắp xếp
+                query = query.OrderBy(sortingQuery);
             }
 
-            // Kiểm tra xem có thông tin phân trang không. Nếu có, áp dụng phân trang dựa trên `PageIndex` và `PageSize`.
-            if (input.PageIndex.HasValue && input.PageSize.HasValue)
-            {
-                query = query.Skip((input.PageIndex.Value - 1) * input.PageSize.Value).Take(input.PageSize.Value);
-            }
-
-            // Lấy dữ liệu từ truy vấn sau khi đã áp dụng sắp xếp và phân trang, sau đó ánh xạ từ TEntity sang TDto.
+            // Lấy toàn bộ dữ liệu từ truy vấn sau khi đã áp dụng sắp xếp
             var data = await query.Select(a => _mapper.Map<TDto>(a)).ToListAsync();
 
-            // Trả về kết quả dưới dạng một đối tượng `PagedViewModel<TDto>` chứa danh sách các đối tượng TDto và tổng số bản ghi.
+            // Trả về kết quả dưới dạng `PagedViewModel<TDto>` với danh sách các đối tượng TDto và tổng số bản ghi
             return new PagedViewModel<TDto>
             {
                 Items = data,
                 TotalRecord = totalCount
             };
         }
+
+
 
 
         public virtual async Task<TEntity> Create(TCreateDto input)

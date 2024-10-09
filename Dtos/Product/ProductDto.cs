@@ -25,5 +25,7 @@ namespace KhanhSkin_BackEnd.Dtos.Product
         public ICollection<ProductVariantDto> Variants { get; set; }
         public ICollection<CategoryDto> Categories { get; set; } // Include Category details if needed
         public ICollection<ProductTypeDto> ProductTypes { get; set; } // Include ProductType details if needed
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+
     }
 }

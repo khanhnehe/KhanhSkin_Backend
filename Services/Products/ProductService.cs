@@ -15,6 +15,9 @@ using System.Threading.Tasks;
 using System.Linq.Dynamic.Core;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using System.Text.RegularExpressions;
+using KhanhSkin_BackEnd.Dtos.Brand;
+using KhanhSkin_BackEnd.Dtos.Category;
+using KhanhSkin_BackEnd.Dtos.ProductType;
 
 
 namespace KhanhSkin_BackEnd.Services.Products
@@ -194,6 +197,9 @@ namespace KhanhSkin_BackEnd.Services.Products
 
             return product;
         }
+
+
+
 
 
         //public override async Task<Product> Update(Guid id, CreateUpdateProductDto input)
@@ -630,11 +636,11 @@ namespace KhanhSkin_BackEnd.Services.Products
         public override async Task<List<ProductDto>> GetAll()
         {
             var products = await _productRepository.AsQueryable()
-                .Where(p => p.IsDeleted == false) // Chỉ lấy những sản phẩm chưa bị xóa mềm
                 .Include(p => p.Brand)
                 .Include(p => p.Categories)
                 .Include(p => p.ProductTypes)
                 .Include(p => p.Variants)
+                .OrderByDescending(p => p.CreatedDate)
                 .ToListAsync();
 
             return _mapper.Map<List<ProductDto>>(products);
@@ -659,46 +665,150 @@ namespace KhanhSkin_BackEnd.Services.Products
             return _mapper.Map<ProductDto>(product);
         }
 
-        public override IQueryable<Product> CreateFilteredQuery(ProductGetRequestInputDto input)
-        {
-            // Tạo một truy vấn cơ bản từ phương thức cơ sở
-            var query = base.CreateFilteredQuery(input);
 
-            // Kiểm tra nếu có BrandId để lọc các sản phẩm theo thương hiệu
+
+        public virtual IQueryable<ProductDto> CreateFilteredQuery(ProductGetRequestInputDto input)
+        {
+            // Bắt đầu với một query cơ bản từ repository
+            var query = _repository.AsQueryable();
+
+            // Áp dụng các điều kiện lọc nếu có
             if (input.BrandId.HasValue)
             {
                 query = query.Where(p => p.BrandId == input.BrandId.Value);
             }
 
-            // Kiểm tra nếu có CategoryIds để lọc các sản phẩm theo danh mục
             if (input.CategoryIds != null && input.CategoryIds.Any())
             {
                 query = query.Where(p => p.Categories.Any(c => input.CategoryIds.Contains(c.Id)));
             }
 
-            // Kiểm tra nếu có ProductTypeIds để lọc các sản phẩm theo loại sản phẩm
             if (input.ProductTypeIds != null && input.ProductTypeIds.Any())
             {
                 query = query.Where(p => p.ProductTypes.Any(pt => input.ProductTypeIds.Contains(pt.Id)));
             }
 
-            // Áp dụng phân trang và sắp xếp nếu có
-            if (!string.IsNullOrWhiteSpace(input.Sort))
+            // Áp dụng sắp xếp dựa trên SortBy và IsAscending
+            if (!string.IsNullOrWhiteSpace(input.SortBy))
             {
-                query = query.OrderBy(input.Sort);
+                // Xác định chiều sắp xếp
+                var sortingOrder = input.IsAscending ? "ascending" : "descending";
+
+                // Sắp xếp theo các tiêu chí khác nhau dựa trên SortBy
+                switch (input.SortBy.ToLower())
+                {
+                    case "price":
+                        query = input.IsAscending ? query.OrderBy(p => p.Price) : query.OrderByDescending(p => p.Price);
+                        break;
+
+                    case "purchases":
+                        query = input.IsAscending ? query.OrderBy(p => p.Purchases) : query.OrderByDescending(p => p.Purchases);
+                        break;
+
+                    case "averagerating":
+                        query = input.IsAscending ? query.OrderBy(p => p.AverageRating) : query.OrderByDescending(p => p.AverageRating);
+                        break;
+
+                    case "createddate":
+                    default:
+                        // Mặc định sắp xếp theo ngày tạo (mới nhất)
+                        query = input.IsAscending ? query.OrderBy(p => p.CreatedDate) : query.OrderByDescending(p => p.CreatedDate);
+                        break;
+                }
+            }
+            else
+            {
+                // Mặc định sắp xếp theo ngày tạo nếu không có điều kiện sắp xếp
+                query = query.OrderByDescending(p => p.CreatedDate);
             }
 
-            if (input.PageIndex.HasValue && input.PageSize.HasValue)
-            {
-                query = query.Skip((input.PageIndex.Value - 1) * input.PageSize.Value).Take(input.PageSize.Value);
-            }
+            // Lựa chọn các trường cần thiết
+            var selectedQuery = query
+                .Include(p => p.Brand)        // Bao gồm các bảng liên quan nếu cần
+                .Include(p => p.Categories)   // Bao gồm danh mục sản phẩm
+                .Include(p => p.ProductTypes) // Bao gồm loại sản phẩm
+                .Select(p => new ProductDto
+                {
+                    Id = p.Id,
+                    ProductName = p.ProductName,
+                    Price = p.Price,
+                    Discount = p.Discount,
+                    SalePrice = p.SalePrice,
+                    Brand = new BrandDto
+                    {
+                        Id = p.Brand.Id,
+                        BrandName = p.Brand.BrandName
+                    },
+                    Categories = p.Categories.Select(c => new CategoryDto
+                    {
+                        Id = c.Id,
+                        CategoryName = c.CategoryName
+                    }).ToList(),
+                    ProductTypes = p.ProductTypes.Select(pt => new ProductTypeDto
+                    {
+                        Id = pt.Id,
+                        TypeName = pt.TypeName
+                    }).ToList(),
+                    Purchases = p.Purchases,
+                    AverageRating = p.AverageRating,
+                    Images = p.Images
+                });
 
-            return query; // Trả về truy vấn đã được lọc
+            return selectedQuery;
         }
 
 
+        // Sử dụng phương thức CreateFilteredQuery
+        public async Task<List<ProductDto>> GetFilteredProducts(ProductGetRequestInputDto input)
+        {
+            var filteredProducts = await CreateFilteredQuery(input)
 
-        public async Task<List<ProductOutstandingDto>> Search(string keyword)
+                .ToListAsync();
+
+            return filteredProducts;
+        }
+    
+
+    //public override IQueryable<Product> CreateFilteredQuery(ProductGetRequestInputDto input)
+    //{
+    //    // Tạo một truy vấn cơ bản từ phương thức cơ sở
+    //    var query = base.CreateFilteredQuery(input);
+
+    //    // Kiểm tra nếu có BrandId để lọc các sản phẩm theo thương hiệu
+    //    if (input.BrandId.HasValue)
+    //    {
+    //        query = query.Where(p => p.BrandId == input.BrandId.Value);
+    //    }
+
+    //    // Kiểm tra nếu có CategoryIds để lọc các sản phẩm theo danh mục
+    //    if (input.CategoryIds != null && input.CategoryIds.Any())
+    //    {
+    //        query = query.Where(p => p.Categories.Any(c => input.CategoryIds.Contains(c.Id)));
+    //    }
+
+    //    // Kiểm tra nếu có ProductTypeIds để lọc các sản phẩm theo loại sản phẩm
+    //    if (input.ProductTypeIds != null && input.ProductTypeIds.Any())
+    //    {
+    //        query = query.Where(p => p.ProductTypes.Any(pt => input.ProductTypeIds.Contains(pt.Id)));
+    //    }
+
+    //    // Áp dụng phân trang và sắp xếp nếu có
+    //    if (!string.IsNullOrWhiteSpace(input.Sort))
+    //    {
+    //        query = query.OrderBy(input.Sort);
+    //    }
+
+    //    if (input.PageIndex.HasValue && input.PageSize.HasValue)
+    //    {
+    //        query = query.Skip((input.PageIndex.Value - 1) * input.PageSize.Value).Take(input.PageSize.Value);
+    //    }
+
+    //    return query; // Trả về truy vấn đã được lọc
+    //}
+
+
+
+    public async Task<List<ProductOutstandingDto>> Search(string keyword)
         {
             var products = await _productRepository
                 .AsQueryable()

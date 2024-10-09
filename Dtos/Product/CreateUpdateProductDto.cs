@@ -18,6 +18,8 @@ namespace KhanhSkin_BackEnd.Dtos.Product
 
         [Required(ErrorMessage = "Vui lòng nhập số lượng sản phẩm!")]
         public int Quantity { get; set; }
+
+        [Range(0, 100, ErrorMessage = "Giảm giá phải từ 0 đến 100!")]
         public int? Discount { get; set; }
         public decimal? SalePrice { get; set; }
 

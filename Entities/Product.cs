@@ -58,5 +58,8 @@ namespace KhanhSkin_BackEnd.Entities
         public ICollection<ProductVoucher> ProductVouchers { get; set; } = new List<ProductVoucher>();
         public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 
+        [Required]
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+
     }
 }
