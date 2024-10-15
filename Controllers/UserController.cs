@@ -67,12 +67,13 @@ namespace KhanhSkin_BackEnd.Controllers
         }
 
         [Authorize]
-        [HttpGet("get-user-by-id/{id}")]
-        public async Task<IActionResult> GetUserById(Guid id)
+        [HttpGet("get-user-by-id")]
+        public async Task<IActionResult> GetCurrentUser()
         {
             try
             {
-                var user = await _userService.GetUserById(id);
+                // Gọi phương thức GetUserById từ _userService mà không cần truyền ID
+                var user = await _userService.GetUserById();
                 return Ok(user);
             }
             catch (ApiException ex)

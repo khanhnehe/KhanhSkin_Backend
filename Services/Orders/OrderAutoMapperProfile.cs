@@ -14,7 +14,6 @@ namespace KhanhSkin_BackEnd.Services.Orders
             // Mapping từ Order sang OrderDto
             CreateMap<Order, OrderDto>()
                 .ForMember(dest => dest.User, opt => opt.MapFrom(src => new UserDto { FullName = src.User.FullName })) // Chỉ ánh xạ FullName
-                .ForMember(dest => dest.Address, opt => opt.MapFrom(src => src.Address)) // Ánh xạ Address
                 .ForMember(dest => dest.OrderItems, opt => opt.MapFrom(src => src.OrderItems)) // Ánh xạ OrderItems
                 .ForMember(dest => dest.ShippingMethodDes, opt => opt.MapFrom(src => src.ShippingMethod.GetDescription())) // Ánh xạ mô tả ShippingMethod
                 .ForMember(dest => dest.PaymentMethodDes, opt => opt.MapFrom(src => src.PaymentMethod.GetDescription())) // Ánh xạ mô tả PaymentMethod

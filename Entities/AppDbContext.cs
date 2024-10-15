@@ -276,11 +276,7 @@ namespace KhanhSkin_BackEnd.Entities
              .HasForeignKey(a => a.UserId)
              .OnDelete(DeleteBehavior.Cascade); // Xóa địa chỉ nếu người dùng bị xóa
 
-            modelBuilder.Entity<Order>()
-                 .HasOne(o => o.Address)
-                 .WithMany()
-                 .HasForeignKey(o => o.AddressId)
-                 .OnDelete(DeleteBehavior.NoAction);
+          
 
             modelBuilder.Entity<Order>()
                 .HasOne(o => o.User)

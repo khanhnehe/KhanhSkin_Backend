@@ -90,12 +90,15 @@ namespace KhanhSkin_BackEnd.Services.Orders
             {
                 UserId = userId.Value,
                 CartId = cart.Id,
-                AddressId = input.AddressId,
-                DiscountValue = cart.DiscountValue,
+               DiscountValue = cart.DiscountValue,
                 ShippingMethod = input.ShippingMethod,
                 PaymentMethod = input.PaymentMethod,
                 OrderDate = DateTime.Now,
-                ShippingAddressSnapshot = $"{address.AddressDetail}, {address.Province}, {address.District}, {address.Ward}, {address.PhoneNumber}",
+                PhoneNumber = address.PhoneNumber,
+                Province = address.Province,
+                District = address.District,
+                Ward = address.Ward,
+                AddressDetail = address.AddressDetail,
                 OrderItems = _mapper.Map<ICollection<OrderItem>>(cart.CartItems),
                 ShippingPrice = (input.ShippingMethod == ShippingMethod.FasfDelivery) ? 35000 : 25000
             };
@@ -224,7 +227,7 @@ namespace KhanhSkin_BackEnd.Services.Orders
                 var orders = await _orderRepository
                     .AsQueryable()
                     .Include(c => c.OrderItems)
-                    .Include(c => c.Address)
+                    //.Include(c => c.Address)
                     .Include(o => o.User)
                     .Where(c => c.UserId == userId.Value) // Find all orders for the user
                     .ToListAsync();
@@ -292,7 +295,7 @@ namespace KhanhSkin_BackEnd.Services.Orders
             await _orderRepository.UpdateAsync(order);
 
             var orderDto = _mapper.Map<OrderDto>(order);
-            orderDto.Address = _mapper.Map<AddressDto>(order.Address);
+            //orderDto.Address = _mapper.Map<AddressDto>(order.Address);
 
             orderDto.OrderStatusDes = order.OrderStatus.GetDescription();
 
@@ -389,7 +392,7 @@ namespace KhanhSkin_BackEnd.Services.Orders
         {
             var allOrders = await _orderRepository.AsQueryable()
                 .Include(o => o.OrderItems)
-                .Include(o => o.Address)
+                //.Include(o => o.Address)
                 .Include(o => o.User)
                 .ToListAsync();
 
@@ -402,7 +405,7 @@ namespace KhanhSkin_BackEnd.Services.Orders
             foreach (var orderDto in orderDtos)
             {
                 var order = allOrders.First(o => o.Id == orderDto.Id);
-                orderDto.Address = _mapper.Map<AddressDto>(order.Address);
+                //orderDto.Address = _mapper.Map<AddressDto>(order.Address);
             }
 
             return orderDtos;
@@ -415,7 +418,7 @@ namespace KhanhSkin_BackEnd.Services.Orders
             var query = _orderRepository.AsQueryable()
                 .Include(o => o.OrderItems)
                 .Include(o => o.User)
-                .Include(o => o.Address)
+                //.Include(o => o.Address)
                 .AsNoTracking();
 
             // Kiểm tra nếu người dùng muốn lọc theo trạng thái đơn hàng
@@ -449,7 +452,7 @@ namespace KhanhSkin_BackEnd.Services.Orders
                 // Bắt đầu truy vấn với tất cả các đơn hàng của người dùng hiện tại
                 var query = _orderRepository.AsQueryable()
                     .Include(o => o.OrderItems)
-                    .Include(o => o.Address)
+                    //.Include(o => o.Address)
                     .Include(o => o.User)
                     .Where(o => o.UserId == userId.Value) // Lọc theo UserId của người dùng hiện tại
                     .AsNoTracking();

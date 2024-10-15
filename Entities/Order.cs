@@ -41,14 +41,21 @@ public class Order : BaseEntity
 
     public Enums.PaymentMethod PaymentMethod { get; set; }
 
-    public Guid? AddressId { get; set; }
-
-    [ForeignKey("AddressId")]
-    public Address Address { get; set; }
 
     [Required]
-    public string ShippingAddressSnapshot { get; set; }
+    public string PhoneNumber { get; set; }
 
+    [Required]
+    public string Province { get; set; }
+
+    [Required]
+    public string District { get; set; }
+
+    [Required]
+    public string Ward { get; set; }
+
+    [Required]
+    public string AddressDetail { get; set; }
 
     public DateTime OrderDate { get; set; } = DateTime.Now;
 

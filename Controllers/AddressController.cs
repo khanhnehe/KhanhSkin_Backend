@@ -78,7 +78,7 @@ namespace KhanhSkin_BackEnd.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"An unexpected error occurred while deleting address with ID {addressId}.");
-                throw new ApiException($"Có lỗi xảy ra: {ex.Message}");
+                throw new ApiException($" {ex.Message}");
             }
         }
 
@@ -102,23 +102,30 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
-        [HttpGet("get-address-by-id/{addressId}")]
-        public async Task<IActionResult> GetAddressById(Guid addressId)
+        [HttpGet("get-my-address")]
+        public async Task<IActionResult> GetMyAddress()
         {
             try
             {
-                var result = await _addressService.Get(addressId);
-                return Ok(result);
+                var result = await _addressService.GetAllAddressesByUserId();
+                if (result != null)
+                {
+                    return Ok(result);
+                }
+                else
+                {
+                    return NotFound("No address found for the current user.");
+                }
             }
             catch (ApiException ex)
             {
-                _logger.LogError(ex, $"Failed to fetch address with ID {addressId}: {ex.Message}");
-                throw;
+                _logger.LogError(ex, "Failed to fetch address for the current user.");
+                return StatusCode(500, $"Failed to fetch address: {ex.Message}");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"An unexpected error occurred while fetching address with ID {addressId}.");
-                throw new ApiException($"Có lỗi xảy ra: {ex.Message}");
+                _logger.LogError(ex, "An unexpected error occurred while fetching the address for the current user.");
+                return StatusCode(500, $"An unexpected error occurred: {ex.Message}");
             }
         }
     }

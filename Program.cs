@@ -50,7 +50,8 @@ builder.Services.AddSingleton<ICloudinary>(cloudinary);
 
 // Cấu hình DbContext sử dụng chuỗi kết nối từ appsettings
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
+        b => b.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
 
 // Đăng ký IHttpContextAccessor để truy cập HttpContext trong ứng dụng
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();

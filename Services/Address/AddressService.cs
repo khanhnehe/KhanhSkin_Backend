@@ -147,7 +147,13 @@ namespace KhanhSkin_BackEnd.Services.Address
                     throw new ApiException("Không tìm thấy địa chỉ.");
                 }
 
-                await _addressRepository.DeleteByEntityAsync(address);
+                // Kiểm tra xem địa chỉ có phải là địa chỉ mặc định không
+                if (address.IsDefault)
+                {
+                    throw new ApiException("Không thể xóa địa chỉ mặc định.");
+                }
+
+                await _addressRepository.DeleteAsync(id);
                 await _addressRepository.SaveChangesAsync();
 
                 return address;
@@ -155,9 +161,10 @@ namespace KhanhSkin_BackEnd.Services.Address
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting address");
-                throw new ApiException("Có lỗi xảy ra khi xóa địa chỉ.");
+                throw new ApiException($"{ex.Message}");
             }
         }
+
 
         public async Task<List<AddressDto>> GetAllAddressesAsync()
         {
@@ -165,6 +172,42 @@ namespace KhanhSkin_BackEnd.Services.Address
             return _mapper.Map<List<AddressDto>>(addresses);
         }
 
-       
+        public async Task<List<AddressDto>> GetAllAddressesByUserId()
+        {
+            try
+            {
+                // Lấy ID của người dùng hiện tại
+                var userId = _currentUser.Id;
+                if (userId == null)
+                {
+                    throw new ApiException("User not authenticated");
+                }
+
+                // Tìm kiếm tất cả các địa chỉ cho người dùng hiện tại
+                var addresses = await _addressRepository
+                    .AsQueryable()
+                    .Include(a => a.User)  // Nếu cần tham chiếu đến bảng User
+                    .Where(a => a.UserId == userId.Value)
+                    .ToListAsync();
+
+                if (addresses == null )
+                {
+                    throw new ApiException("Không tìm thấy địa chỉ của người dùng.");
+                }
+
+                // Ánh xạ danh sách đối tượng Address sang danh sách AddressDto
+                var addressDtos = _mapper.Map<List<AddressDto>>(addresses);
+                return addressDtos;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while retrieving the addresses for the current user.");
+                throw new ApiException($"An error occurred: {ex.Message}");
+            }
+        }
+
+
+
+
     }
 }

@@ -2,7 +2,7 @@
 
 public class ProductGetRequestInputDto : BaseGetRequestInput
 {
-    public Guid? BrandId { get; set; } // Lọc theo BrandId
+    public List<Guid> BrandIds { get; set; }
     public List<Guid> CategoryIds { get; set; } // Lọc theo danh sách CategoryIds
     public List<Guid> ProductTypeIds { get; set; } // Lọc theo danh sách ProductTypeIds
     public decimal? MinPrice { get; set; } // Giá thấp nhất

@@ -166,15 +166,35 @@ namespace KhanhSkin_BackEnd.Services.Users
             return true;
         }
 
-        public async Task<UserDto> GetUserById(Guid id)
+        public async Task<UserDto> GetUserById()
         {
-            var user = await _userRepository.GetAsync(id);
-            if (user == null)
+            try
             {
-                throw new ApiException("Không tìm thấy người dùng.");
+                // Lấy ID của người dùng hiện tại từ đối tượng _currentUser
+                var userId = _currentUser.Id;
+                if (userId == null)
+                {
+                    throw new Exception("User not authenticated");
+                }
+
+                // Tìm kiếm người dùng trong cơ sở dữ liệu dựa vào ID
+                var user = await _userRepository.GetAsync(userId.Value);
+                if (user == null)
+                {
+                    throw new ApiException("Không tìm thấy người dùng.");
+                }
+
+                // Ánh xạ đối tượng User sang UserDto và trả về
+                var userDto = _mapper.Map<UserDto>(user);
+                return userDto;
             }
-            return _mapper.Map<UserDto>(user);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while retrieving the user.");
+                throw new Exception($"An error occurred: {ex.Message}");
+            }
         }
+
 
 
         public async Task<List<UserDto>> GetAllUsers()

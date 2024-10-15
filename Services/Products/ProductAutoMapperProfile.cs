@@ -53,7 +53,11 @@ namespace KhanhSkin_BackEnd.Services.Products
                 .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.Images.ToList()));
 
             // Ánh xạ từ thực thể Product sang ProductSummaryDto
-            CreateMap<Product, ProductOutstandingDto>();
+            CreateMap<Product, ProductOutstandingDto>()
+               //.ForMember(dest => dest.Variants, opt => opt.Ignore())
+               .ForMember(dest => dest.Brand, opt => opt.MapFrom(src => new BrandDto { Id = src.Brand.Id, BrandName = src.Brand.BrandName }))
+                .ForMember(dest => dest.Categories, opt => opt.MapFrom(src => src.Categories.Select(c => new CategoryDto { Id = c.Id, CategoryName = c.CategoryName }).ToList()))
+                .ForMember(dest => dest.ProductTypes, opt => opt.MapFrom(src => src.ProductTypes.Select(pt => new ProductTypeDto { Id = pt.Id, TypeName = pt.TypeName }).ToList()));
 
             CreateMap<ProductVariantDto, CreateUpdateProductVariantDto>();
 

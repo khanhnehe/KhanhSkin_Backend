@@ -64,7 +64,7 @@ namespace KhanhSkin_BackEnd.Services.Carts
                 }
 
                 // Kiểm tra số lượng sản phẩm thêm vào giỏ hàng
-                if (input.AmountAdd < 1)
+                if (input.AmountAdd < -1)
                 {
                     throw new Exception("Số lượng sản phẩm được thêm phải lớn hơn hoặc bằng 1"); // Ném ngoại lệ nếu số lượng sản phẩm không hợp lệ
                 }
@@ -103,7 +103,7 @@ namespace KhanhSkin_BackEnd.Services.Carts
                 {
                     if (!input.VariantId.HasValue)
                     {
-                        throw new Exception("Product has variants. Please select a variant.");
+                        throw new Exception("Vui lòng chọn biến thể của sản phẩm");
                     }
 
                     var variant = product.Variants.FirstOrDefault(v => v.Id == input.VariantId.Value);
@@ -151,7 +151,7 @@ namespace KhanhSkin_BackEnd.Services.Carts
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred");
-                throw new Exception($"Có lỗi xảy ra: {ex.Message}");
+                throw new Exception($"{ex.Message}");
             }
         }
 

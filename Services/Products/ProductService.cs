@@ -673,9 +673,10 @@ namespace KhanhSkin_BackEnd.Services.Products
             var query = _repository.AsQueryable();
 
             // Áp dụng các điều kiện lọc nếu có
-            if (input.BrandId.HasValue)
+            // Áp dụng các điều kiện lọc nếu có
+            if (input.BrandIds != null && input.BrandIds.Any())
             {
-                query = query.Where(p => p.BrandId == input.BrandId.Value);
+                query = query.Where(p => input.BrandIds.Contains(p.BrandId));
             }
 
             if (input.CategoryIds != null && input.CategoryIds.Any())
@@ -687,6 +688,18 @@ namespace KhanhSkin_BackEnd.Services.Products
             {
                 query = query.Where(p => p.ProductTypes.Any(pt => input.ProductTypeIds.Contains(pt.Id)));
             }
+
+            // Lọc theo MinPrice và MaxPrice nếu có
+            if (input.MinPrice.HasValue)
+            {
+                query = query.Where(p => p.Price >= input.MinPrice.Value);
+            }
+
+            if (input.MaxPrice.HasValue)
+            {
+                query = query.Where(p => p.Price <= input.MaxPrice.Value);
+            }
+
 
             // Áp dụng sắp xếp dựa trên SortBy và IsAscending
             if (!string.IsNullOrWhiteSpace(input.SortBy))
@@ -830,7 +843,7 @@ namespace KhanhSkin_BackEnd.Services.Products
                 .Include(p => p.Brand)
                 .Include(p => p.Categories)
                 .Include(p => p.ProductTypes)
-                .Include(p => p.Variants)
+                .OrderByDescending(p => p.CreatedDate)
                 .ToListAsync();
 
             return _mapper.Map<List<ProductOutstandingDto>>(products);
@@ -843,7 +856,7 @@ namespace KhanhSkin_BackEnd.Services.Products
                 .Include(p => p.Brand)
                 .Include(p => p.Categories)
                 .Include(p => p.ProductTypes)
-                .Include(p => p.Variants)
+                .OrderByDescending(p => p.CreatedDate)
                 .ToListAsync();
 
             return _mapper.Map<List<ProductOutstandingDto>>(products);
@@ -856,7 +869,7 @@ namespace KhanhSkin_BackEnd.Services.Products
                 .Include(p => p.Brand)
                 .Include(p => p.Categories)
                 .Include(p => p.ProductTypes)
-                .Include(p => p.Variants)
+                                .OrderByDescending(p => p.CreatedDate)
                 .ToListAsync();
 
             return _mapper.Map<List<ProductOutstandingDto>>(products);

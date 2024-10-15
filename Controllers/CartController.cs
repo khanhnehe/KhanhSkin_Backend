@@ -39,7 +39,7 @@ namespace KhanhSkin_BackEnd.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"An error occurred while adding product to cart: {ex.Message}");
-                throw new ApiException($"An error occurred: {ex.Message}");
+                throw new ApiException($"{ex.Message}");
             }
         }
         [HttpDelete("delete/{cartItemId}")]
