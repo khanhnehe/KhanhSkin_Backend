@@ -5,6 +5,7 @@ namespace KhanhSkin_BackEnd.Dtos.Address
     public class CreateUpdateAddressDto : BaseDto
          {
         public string PhoneNumber { get; set; }
+        public string FullName { get; set; }
 
         public int ProvinceId { get; set; } // ID của tỉnh
         public string Province { get; set; } // Tên tỉnh

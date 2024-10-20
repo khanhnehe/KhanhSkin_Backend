@@ -18,6 +18,8 @@ using System.Text.RegularExpressions;
 using KhanhSkin_BackEnd.Dtos.Brand;
 using KhanhSkin_BackEnd.Dtos.Category;
 using KhanhSkin_BackEnd.Dtos.ProductType;
+using KhanhSkin_BackEnd.Dtos.Cart;
+using KhanhSkin_BackEnd.Services.Carts;
 
 
 namespace KhanhSkin_BackEnd.Services.Products
@@ -30,9 +32,11 @@ namespace KhanhSkin_BackEnd.Services.Products
         private readonly IRepository<ProductType> _productTypeRepository;
         private readonly IRepository<Brand> _brandRepository;
         private readonly IRepository<ProductVariant> _productVariantRepository;
+        private readonly IRepository<CartItem> _cartItemRepository;
         private readonly IMapper _mapper;
         private readonly ILogger<ProductService> _logger;
         private readonly CloudinaryService _cloudinaryService;
+        private readonly CartService _cartService;
 
         public ProductService(
             IConfiguration config,
@@ -41,9 +45,11 @@ namespace KhanhSkin_BackEnd.Services.Products
             IRepository<ProductType> productTypeRepository,
             IRepository<Brand> brandRepository,
             IRepository<ProductVariant> productVariantRepository,
+            IRepository<CartItem> cartItemRepository,
             IMapper mapper,
             ILogger<ProductService> logger,
             CloudinaryService cloudinaryService,
+            CartService cartService,
             ICurrentUser currentUser)
             : base(mapper, repository, logger, currentUser)
         {
@@ -53,7 +59,9 @@ namespace KhanhSkin_BackEnd.Services.Products
             _productTypeRepository = productTypeRepository;
             _brandRepository = brandRepository;
             _productVariantRepository = productVariantRepository;
+            _cartItemRepository = cartItemRepository;
             _cloudinaryService = cloudinaryService;
+            _cartService = cartService;
             _mapper = mapper;
             _logger = logger;
         }
@@ -198,212 +206,6 @@ namespace KhanhSkin_BackEnd.Services.Products
             return product;
         }
 
-
-
-
-
-        //public override async Task<Product> Update(Guid id, CreateUpdateProductDto input)
-        //{
-        //    try
-        //    {
-        //        Tìm sản phẩm theo ID
-        //       var product = await _productRepository.AsQueryable()
-        //           .Include(p => p.Variants)
-        //           .Include(p => p.Categories)
-        //           .Include(p => p.ProductTypes)
-        //           .FirstOrDefaultAsync(a => a.Id == id);
-
-        //        if (product == null)
-        //        {
-        //            _logger.LogError("Product with id {Id} not found", id);
-        //            throw new KeyNotFoundException($"Product with id {id} not found");
-        //        }
-
-        //        Kiểm tra SKU trùng lặp
-        //       await CheckDuplicateSKU(input.SKU, id);
-
-        //        Kiểm tra sự tồn tại của Brand
-        //       await CheckBrandExist(input.BrandId);
-        //        product.BrandId = input.BrandId;
-
-        //        Cập nhật các trường cơ bản của sản phẩm
-        //        _mapper.Map(input, product);
-
-        //        Tính toán giá bán sau khi giảm giá nếu có
-        //        CalculateSalePrice(product);
-
-        //        Cập nhật các quan hệ nhiều-nhiều(Categories, ProductTypes)
-        //        await UpdateProductCategories(product, input.CategoryIds.ToList());
-        //        await UpdateProductTypes(product, input.ProductTypeIds.ToList());
-        //        await UpdateProductImages(product, input.Images.ToList());
-
-
-        //        Cập nhật biến thể sản phẩm
-        //        await UpdateProductVariants(product, input.Variants);
-
-        //        Cập nhật sản phẩm trong cơ sở dữ liệu
-        //       await _productRepository.UpdateAsync(product);
-
-        //        return product;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "Error updating product: {ProductName}", typeof(Product).Name);
-        //        throw;
-        //    }
-        //}
-        //private async Task CheckDuplicateSKU(string sku, Guid productId)
-        //{
-        //    if (await _productRepository.AsQueryable().AnyAsync(p => p.SKU == sku && p.Id != productId))
-        //    {
-        //        throw new ApiException("SKU đã tồn tại.");
-        //    }
-        //}
-        //private async Task CheckBrandExist(Guid brandId)
-        //{
-        //    var brand = await _brandRepository.GetAsync(brandId);
-        //    if (brand == null)
-        //    {
-        //        throw new ApiException($"Không tìm thấy thương hiệu với id {brandId}.");
-        //    }
-        //}
-        //private void CalculateSalePrice(Product product)
-        //{
-        //    if (product.Discount.HasValue && product.Discount.Value > 0 && product.Discount.Value <= 100)
-        //    {
-        //        product.SalePrice = product.Price - (product.Price * product.Discount.Value / 100);
-        //    }
-        //    else
-        //    {
-        //        product.SalePrice = product.Price;
-        //    }
-        //}
-        //private async Task UpdateProductCategories(Product product, List<Guid> categoryIds)
-        //{
-        //    var existingCategoryIds = product.Categories.Select(c => c.Id).ToList();
-        //    var newCategoryIds = categoryIds.Except(existingCategoryIds).ToList();
-        //    var removedCategoryIds = existingCategoryIds.Except(categoryIds).ToList();
-
-        //    foreach (var categoryId in removedCategoryIds)
-        //    {
-        //        var categoryToRemove = product.Categories.FirstOrDefault(c => c.Id == categoryId);
-        //        if (categoryToRemove != null)
-        //        {
-        //            product.Categories.Remove(categoryToRemove);
-        //        }
-        //    }
-
-        //    foreach (var categoryId in newCategoryIds)
-        //    {
-        //        var category = await _categoryRepository.GetAsync(categoryId);
-        //        if (category == null)
-        //        {
-        //            throw new ApiException($"Không tìm thấy danh mục với id {categoryId}.");
-        //        }
-        //        product.Categories.Add(category);
-        //    }
-        //}
-
-        //private async Task UpdateProductTypes(Product product, List<Guid> productTypeIds)
-        //{
-        //    var existingProductTypeIds = product.ProductTypes.Select(pt => pt.Id).ToList();
-        //    var newProductTypeIds = productTypeIds.Except(existingProductTypeIds).ToList();
-        //    var removedProductTypeIds = existingProductTypeIds.Except(productTypeIds).ToList();
-
-        //    foreach (var productTypeId in removedProductTypeIds)
-        //    {
-        //        var productTypeToRemove = product.ProductTypes.FirstOrDefault(pt => pt.Id == productTypeId);
-        //        if (productTypeToRemove != null)
-        //        {
-        //            product.ProductTypes.Remove(productTypeToRemove);
-        //        }
-        //    }
-
-        //    foreach (var productTypeId in newProductTypeIds)
-        //    {
-        //        var productType = await _productTypeRepository.GetAsync(productTypeId);
-        //        if (productType == null)
-        //        {
-        //            throw new ApiException($"Không tìm thấy loại sản phẩm với id {productTypeId}.");
-        //        }
-        //        product.ProductTypes.Add(productType);
-        //    }
-        //}
-
-        //private async Task UpdateProductImages(Product product, List<string> imageUrls)
-        //{
-        //    product.Images = imageUrls; // Cập nhật danh sách ảnh sản phẩm với các URL mới
-        //}
-
-
-        //private async Task UpdateProductVariants(Product product, List<ProductVariantDto> variantsDto)
-        //{
-        //    var existingVariants = await _productVariantRepository.AsQueryable().Where(v => v.ProductId == product.Id).ToListAsync();
-        //    _productVariantRepository.Table.RemoveRange(existingVariants); // Xóa các biến thể hiện tại
-        //    await _productVariantRepository.SaveChangesAsync();
-
-        //    var variants = new List<ProductVariant>();
-        //    if (variantsDto != null && variantsDto.Any())
-        //    {
-        //        var totalVariantQuantity = variantsDto.Sum(v => v.QuantityVariant);
-        //        if (totalVariantQuantity != product.Quantity)
-        //        {
-        //            throw new ApiException("Tổng số lượng biến thể phải bằng với Quantity của sản phẩm.");
-        //        }
-
-        //        var variantSKUs = new HashSet<string>();
-        //        foreach (var variantDto in variantsDto)
-        //        {
-        //            if (variantSKUs.Contains(variantDto.SKUVariant))
-        //            {
-        //                throw new ApiException("Các biến thể trong danh sách đầu vào không được có SKU trùng lặp.");
-        //            }
-        //            variantSKUs.Add(variantDto.SKUVariant);
-
-        //            if (await CheckVariantExist(variantDto.NameVariant, variantDto.SKUVariant, product.Id))
-        //            {
-        //                throw new ApiException("Biến thể đã tồn tại cho sản phẩm này hoặc SKU biến thể đã tồn tại.");
-        //            }
-
-        //            var variant = _mapper.Map<ProductVariant>(variantDto);
-        //            CalculateVariantSalePrice(variant);
-
-        //            variant.Id = Guid.NewGuid();
-        //            variants.Add(variant);
-        //        }
-        //    }
-
-        //    foreach (var variant in variants)
-        //    {
-        //        variant.ProductId = product.Id;
-        //        await _productVariantRepository.CreateAsync(variant);
-        //    }
-
-        //    await _productVariantRepository.SaveChangesAsync();
-        //}
-
-
-        //private void CalculateVariantSalePrice(ProductVariant variant)
-        //{
-        //    if (variant.DiscountVariant.HasValue && variant.DiscountVariant.Value > 0 && variant.DiscountVariant.Value <= 100)
-        //    {
-        //        variant.SalePriceVariant = variant.PriceVariant - (variant.PriceVariant * variant.DiscountVariant.Value / 100);
-        //    }
-        //    else
-        //    {
-        //        variant.SalePriceVariant = variant.PriceVariant;
-        //    }
-        //}
-        //private async Task<bool> CheckVariantExist(string nameVariant, string skuVariant, Guid productId)
-        //{
-        //    return await _productVariantRepository.AsQueryable()
-        //        .AnyAsync(v => (v.NameVariant == nameVariant || v.SKUVariant == skuVariant) && v.ProductId == productId);
-        //}
-
-
-
-
-
         public override async Task<Product> Update(Guid id, CreateUpdateProductDto input)
         {
             try
@@ -427,7 +229,7 @@ namespace KhanhSkin_BackEnd.Services.Products
                     throw new ApiException("SKU đã tồn tại.");
                 }
 
-                // Kiểm tra sự tồn tại của Brand dựa trên BrandId
+                // Kiểm tra sự tồn tại của Brand
                 var brand = await _brandRepository.GetAsync(input.BrandId);
                 if (brand == null)
                 {
@@ -438,12 +240,11 @@ namespace KhanhSkin_BackEnd.Services.Products
                 // Cập nhật thông tin sản phẩm từ DTO
                 _mapper.Map(input, product);
 
-                // Quản lý ảnh sản phẩm: giữ lại ảnh cũ và thêm ảnh mới
+                // Xử lý hình ảnh sản phẩm
                 var existingImages = product.Images ?? new List<string>();
-                var newImages = input.Images.Except(existingImages).ToList(); // Chỉ thêm ảnh mới
-                product.Images = existingImages.Union(newImages).ToList(); // Gộp ảnh cũ và ảnh mới
+                var newImages = input.Images.Except(existingImages).ToList();
+                product.Images = existingImages.Union(newImages).ToList();
 
-                // Xóa ảnh bị xóa từ FE
                 var removedImages = existingImages.Except(input.Images).ToList();
                 foreach (var image in removedImages)
                 {
@@ -464,109 +265,82 @@ namespace KhanhSkin_BackEnd.Services.Products
                     product.SalePrice = product.Price;
                 }
 
-                // Cập nhật mối quan hệ nhiều-nhiều cho Categories
-                var existingCategoryIds = product.Categories.Select(c => c.Id).ToList();
-                var newCategoryIds = input.CategoryIds.Except(existingCategoryIds).ToList();
-                var removedCategoryIds = existingCategoryIds.Except(input.CategoryIds).ToList();
+                // Tìm tất cả CartItems liên quan đến sản phẩm
+                var relatedCartItems = await _cartItemRepository.AsQueryable()
+                    .Where(ci => ci.ProductId == id)
+                    .ToListAsync();
 
-                foreach (var categoryId in removedCategoryIds)
+                // Xóa CartItems có liên quan đến sản phẩm hoặc biến thể đã chỉnh sửa
+                if (relatedCartItems.Any())
                 {
-                    var categoryToRemove = product.Categories.FirstOrDefault(c => c.Id == categoryId);
-                    if (categoryToRemove != null)
-                    {
-                        product.Categories.Remove(categoryToRemove);
-                    }
+                    _cartItemRepository.Table.RemoveRange(relatedCartItems);
+                    await _cartItemRepository.SaveChangesAsync();
                 }
 
-                foreach (var categoryId in newCategoryIds)
+                // Cập nhật hoặc thêm mới các biến thể
+                var existingVariants = await _productVariantRepository.AsQueryable()
+                    .Where(v => v.ProductId == id)
+                    .ToListAsync();
+
+                foreach (var variantDto in input.Variants)
                 {
-                    var category = await _categoryRepository.GetAsync(categoryId);
-                    if (category == null)
+                    var existingVariant = existingVariants.FirstOrDefault(v => v.SKUVariant == variantDto.SKUVariant);
+
+                    if (existingVariant != null)
                     {
-                        throw new ApiException($"Không tìm thấy danh mục với id {categoryId}.");
-                    }
-                    product.Categories.Add(category);
-                }
+                        // Cập nhật biến thể hiện có
+                        _mapper.Map(variantDto, existingVariant);
 
-                // Cập nhật mối quan hệ nhiều-nhiều cho ProductTypes
-                var existingProductTypeIds = product.ProductTypes.Select(pt => pt.Id).ToList();
-                var newProductTypeIds = input.ProductTypeIds.Except(existingProductTypeIds).ToList();
-                var removedProductTypeIds = existingProductTypeIds.Except(input.ProductTypeIds).ToList();
+                        // Tìm và xóa CartItems liên quan đến biến thể đã chỉnh sửa
+                        var variantCartItems = await _cartItemRepository.AsQueryable()
+                            .Where(ci => ci.VariantId == existingVariant.Id)
+                            .ToListAsync();
 
-                foreach (var productTypeId in removedProductTypeIds)
-                {
-                    var productTypeToRemove = product.ProductTypes.FirstOrDefault(pt => pt.Id == productTypeId);
-                    if (productTypeToRemove != null)
-                    {
-                        product.ProductTypes.Remove(productTypeToRemove);
-                    }
-                }
-
-                foreach (var productTypeId in newProductTypeIds)
-                {
-                    var productType = await _productTypeRepository.GetAsync(productTypeId);
-                    if (productType == null)
-                    {
-                        throw new ApiException($"Không tìm thấy loại sản phẩm với id {productTypeId}.");
-                    }
-                    product.ProductTypes.Add(productType);
-                }
-
-                // Cập nhật biến thể sản phẩm: tương tự như sản phẩm, giữ ảnh cũ và thêm ảnh mới
-                var existingVariants = await _productVariantRepository.AsQueryable().Where(v => v.ProductId == id).ToListAsync();
-                var variantSKUs = new HashSet<string>();
-                foreach (var existingVariant in existingVariants)
-                {
-                    variantSKUs.Add(existingVariant.SKUVariant);
-                }
-
-                var variantsToUpdate = new List<ProductVariant>();
-                if (input.Variants != null && input.Variants.Any())
-                {
-                    var totalVariantQuantity = input.Variants.Sum(v => v.QuantityVariant);
-
-                    if (totalVariantQuantity != input.Quantity)
-                    {
-                        throw new ApiException("Tổng số lượng biến thể phải bằng với Quantity của sản phẩm.");
-                    }
-
-                    foreach (var variantDto in input.Variants)
-                    {
-                        // Giữ lại ảnh cũ của biến thể và thêm ảnh mới
-                        var existingVariant = existingVariants.FirstOrDefault(v => v.SKUVariant == variantDto.SKUVariant);
-                        var newVariant = _mapper.Map<ProductVariant>(variantDto);
-
-                        var existingVariantImage = existingVariant?.ImageUrl;
-                        var newVariantImage = variantDto.ImageUrl;
-
-                        // Chỉ xóa ảnh cũ nếu có ảnh mới và ảnh cũ khác với ảnh mới
-                        if (!string.IsNullOrEmpty(existingVariantImage) && existingVariantImage != newVariantImage)
+                        if (variantCartItems.Any())
                         {
-                            var publicId = ExtractPublicIdFromUrl(existingVariantImage);
-                            if (publicId != null)
-                            {
-                                await _cloudinaryService.DeleteImageAsync(publicId); // Xóa ảnh cũ
-                            }
+                            _cartItemRepository.Table.RemoveRange(variantCartItems);
+                            await _cartItemRepository.SaveChangesAsync();
                         }
-
-                        newVariant.ImageUrl = newVariantImage;
-                        variantsToUpdate.Add(newVariant);
+                    }
+                    else
+                    {
+                        // Thêm biến thể mới
+                        var newVariant = _mapper.Map<ProductVariant>(variantDto);
+                        newVariant.ProductId = product.Id;
+                        await _productVariantRepository.CreateAsync(newVariant);
                     }
                 }
 
-                // Xóa các biến thể cũ và thêm các biến thể mới
-                _productVariantRepository.Table.RemoveRange(existingVariants);
-                await _productVariantRepository.SaveChangesAsync();
+                // Xóa các biến thể không còn tồn tại trong danh sách input
+                var variantsToRemove = existingVariants
+                    .Where(v => !input.Variants.Any(dto => dto.SKUVariant == v.SKUVariant))
+                    .ToList();
 
-                foreach (var variant in variantsToUpdate)
+                if (variantsToRemove.Any())
                 {
-                    variant.ProductId = product.Id;
-                    await _productVariantRepository.CreateAsync(variant);
+                    _productVariantRepository.Table.RemoveRange(variantsToRemove);
+                    await _productVariantRepository.SaveChangesAsync();
                 }
 
-                await _productVariantRepository.SaveChangesAsync();
+                // Cập nhật các quan hệ nhiều-nhiều khác (Categories, ProductTypes)
+                await UpdateProductRelationships(product, input);
 
-                // Cập nhật sản phẩm trong cơ sở dữ liệu
+                // Thêm lại sản phẩm hoặc biến thể vào giỏ hàng
+                foreach (var variant in existingVariants)
+                {
+                    // Nếu sản phẩm có biến thể, thêm lại biến thể phù hợp
+                    var addProductToCartDto = new AddProductToCartDto
+                    {
+                        ProductId = product.Id,
+                        VariantId = variant != null ? variant.Id : null, // Nếu có biến thể, đặt VariantId
+                        AmountAdd = 1 // Giả sử số lượng thêm lại là 1, có thể thay đổi tùy logic
+                    };
+
+                    // Gọi phương thức để thêm lại sản phẩm hoặc biến thể vào giỏ hàng
+                    await _cartService.AddProductToCart(addProductToCartDto);
+                }
+
+                // Lưu thay đổi sản phẩm
                 await _productRepository.UpdateAsync(product);
 
                 return product;
@@ -578,6 +352,59 @@ namespace KhanhSkin_BackEnd.Services.Products
             }
         }
 
+
+
+        // Hàm phụ trợ để cập nhật quan hệ nhiều-nhiều (Categories, ProductTypes)
+        private async Task UpdateProductRelationships(Product product, CreateUpdateProductDto input)
+        {
+            // Cập nhật quan hệ Categories
+            var existingCategoryIds = product.Categories.Select(c => c.Id).ToList();
+            var newCategoryIds = input.CategoryIds.Except(existingCategoryIds).ToList();
+            var removedCategoryIds = existingCategoryIds.Except(input.CategoryIds).ToList();
+
+            foreach (var categoryId in removedCategoryIds)
+            {
+                var categoryToRemove = product.Categories.FirstOrDefault(c => c.Id == categoryId);
+                if (categoryToRemove != null)
+                {
+                    product.Categories.Remove(categoryToRemove);
+                }
+            }
+
+            foreach (var categoryId in newCategoryIds)
+            {
+                var category = await _categoryRepository.GetAsync(categoryId);
+                if (category == null)
+                {
+                    throw new ApiException($"Không tìm thấy danh mục với id {categoryId}.");
+                }
+                product.Categories.Add(category);
+            }
+
+            // Cập nhật quan hệ ProductTypes
+            var existingProductTypeIds = product.ProductTypes.Select(pt => pt.Id).ToList();
+            var newProductTypeIds = input.ProductTypeIds.Except(existingProductTypeIds).ToList();
+            var removedProductTypeIds = existingProductTypeIds.Except(input.ProductTypeIds).ToList();
+
+            foreach (var productTypeId in removedProductTypeIds)
+            {
+                var productTypeToRemove = product.ProductTypes.FirstOrDefault(pt => pt.Id == productTypeId);
+                if (productTypeToRemove != null)
+                {
+                    product.ProductTypes.Remove(productTypeToRemove);
+                }
+            }
+
+            foreach (var productTypeId in newProductTypeIds)
+            {
+                var productType = await _productTypeRepository.GetAsync(productTypeId);
+                if (productType == null)
+                {
+                    throw new ApiException($"Không tìm thấy loại sản phẩm với id {productTypeId}.");
+                }
+                product.ProductTypes.Add(productType);
+            }
+        }
 
 
 
@@ -592,6 +419,16 @@ namespace KhanhSkin_BackEnd.Services.Products
             {
                 throw new ApiException("Product not found.");
             }
+
+            // Xóa các CartItems liên quan đến sản phẩm và biến thể của sản phẩm
+            var cartItems = await _cartItemRepository.AsQueryable()
+                              .Where(ci => ci.ProductId == id || ci.Variant.ProductId == id)
+                              .ToListAsync();
+
+            _cartItemRepository.Table.RemoveRange(cartItems);
+            await _cartItemRepository.SaveChangesAsync();
+
+
 
             // Xóa ảnh chính của sản phẩm từ Cloudinary
             foreach (var image in product.Images)
@@ -877,3 +714,206 @@ namespace KhanhSkin_BackEnd.Services.Products
     }
 
 }
+
+
+//public override async Task<Product> Update(Guid id, CreateUpdateProductDto input)
+//{
+//    try
+//    {
+//        Tìm sản phẩm theo ID
+//       var product = await _productRepository.AsQueryable()
+//           .Include(p => p.Variants)
+//           .Include(p => p.Categories)
+//           .Include(p => p.ProductTypes)
+//           .FirstOrDefaultAsync(a => a.Id == id);
+
+//        if (product == null)
+//        {
+//            _logger.LogError("Product with id {Id} not found", id);
+//            throw new KeyNotFoundException($"Product with id {id} not found");
+//        }
+
+//        Kiểm tra SKU trùng lặp
+//       await CheckDuplicateSKU(input.SKU, id);
+
+//        Kiểm tra sự tồn tại của Brand
+//       await CheckBrandExist(input.BrandId);
+//        product.BrandId = input.BrandId;
+
+//        Cập nhật các trường cơ bản của sản phẩm
+//        _mapper.Map(input, product);
+
+//        Tính toán giá bán sau khi giảm giá nếu có
+//        CalculateSalePrice(product);
+
+//        Cập nhật các quan hệ nhiều-nhiều(Categories, ProductTypes)
+//        await UpdateProductCategories(product, input.CategoryIds.ToList());
+//        await UpdateProductTypes(product, input.ProductTypeIds.ToList());
+//        await UpdateProductImages(product, input.Images.ToList());
+
+
+//        Cập nhật biến thể sản phẩm
+//        await UpdateProductVariants(product, input.Variants);
+
+//        Cập nhật sản phẩm trong cơ sở dữ liệu
+//       await _productRepository.UpdateAsync(product);
+
+//        return product;
+//    }
+//    catch (Exception ex)
+//    {
+//        _logger.LogError(ex, "Error updating product: {ProductName}", typeof(Product).Name);
+//        throw;
+//    }
+//}
+//private async Task CheckDuplicateSKU(string sku, Guid productId)
+//{
+//    if (await _productRepository.AsQueryable().AnyAsync(p => p.SKU == sku && p.Id != productId))
+//    {
+//        throw new ApiException("SKU đã tồn tại.");
+//    }
+//}
+//private async Task CheckBrandExist(Guid brandId)
+//{
+//    var brand = await _brandRepository.GetAsync(brandId);
+//    if (brand == null)
+//    {
+//        throw new ApiException($"Không tìm thấy thương hiệu với id {brandId}.");
+//    }
+//}
+//private void CalculateSalePrice(Product product)
+//{
+//    if (product.Discount.HasValue && product.Discount.Value > 0 && product.Discount.Value <= 100)
+//    {
+//        product.SalePrice = product.Price - (product.Price * product.Discount.Value / 100);
+//    }
+//    else
+//    {
+//        product.SalePrice = product.Price;
+//    }
+//}
+//private async Task UpdateProductCategories(Product product, List<Guid> categoryIds)
+//{
+//    var existingCategoryIds = product.Categories.Select(c => c.Id).ToList();
+//    var newCategoryIds = categoryIds.Except(existingCategoryIds).ToList();
+//    var removedCategoryIds = existingCategoryIds.Except(categoryIds).ToList();
+
+//    foreach (var categoryId in removedCategoryIds)
+//    {
+//        var categoryToRemove = product.Categories.FirstOrDefault(c => c.Id == categoryId);
+//        if (categoryToRemove != null)
+//        {
+//            product.Categories.Remove(categoryToRemove);
+//        }
+//    }
+
+//    foreach (var categoryId in newCategoryIds)
+//    {
+//        var category = await _categoryRepository.GetAsync(categoryId);
+//        if (category == null)
+//        {
+//            throw new ApiException($"Không tìm thấy danh mục với id {categoryId}.");
+//        }
+//        product.Categories.Add(category);
+//    }
+//}
+
+//private async Task UpdateProductTypes(Product product, List<Guid> productTypeIds)
+//{
+//    var existingProductTypeIds = product.ProductTypes.Select(pt => pt.Id).ToList();
+//    var newProductTypeIds = productTypeIds.Except(existingProductTypeIds).ToList();
+//    var removedProductTypeIds = existingProductTypeIds.Except(productTypeIds).ToList();
+
+//    foreach (var productTypeId in removedProductTypeIds)
+//    {
+//        var productTypeToRemove = product.ProductTypes.FirstOrDefault(pt => pt.Id == productTypeId);
+//        if (productTypeToRemove != null)
+//        {
+//            product.ProductTypes.Remove(productTypeToRemove);
+//        }
+//    }
+
+//    foreach (var productTypeId in newProductTypeIds)
+//    {
+//        var productType = await _productTypeRepository.GetAsync(productTypeId);
+//        if (productType == null)
+//        {
+//            throw new ApiException($"Không tìm thấy loại sản phẩm với id {productTypeId}.");
+//        }
+//        product.ProductTypes.Add(productType);
+//    }
+//}
+
+//private async Task UpdateProductImages(Product product, List<string> imageUrls)
+//{
+//    product.Images = imageUrls; // Cập nhật danh sách ảnh sản phẩm với các URL mới
+//}
+
+
+//private async Task UpdateProductVariants(Product product, List<ProductVariantDto> variantsDto)
+//{
+//    var existingVariants = await _productVariantRepository.AsQueryable().Where(v => v.ProductId == product.Id).ToListAsync();
+//    _productVariantRepository.Table.RemoveRange(existingVariants); // Xóa các biến thể hiện tại
+//    await _productVariantRepository.SaveChangesAsync();
+
+//    var variants = new List<ProductVariant>();
+//    if (variantsDto != null && variantsDto.Any())
+//    {
+//        var totalVariantQuantity = variantsDto.Sum(v => v.QuantityVariant);
+//        if (totalVariantQuantity != product.Quantity)
+//        {
+//            throw new ApiException("Tổng số lượng biến thể phải bằng với Quantity của sản phẩm.");
+//        }
+
+//        var variantSKUs = new HashSet<string>();
+//        foreach (var variantDto in variantsDto)
+//        {
+//            if (variantSKUs.Contains(variantDto.SKUVariant))
+//            {
+//                throw new ApiException("Các biến thể trong danh sách đầu vào không được có SKU trùng lặp.");
+//            }
+//            variantSKUs.Add(variantDto.SKUVariant);
+
+//            if (await CheckVariantExist(variantDto.NameVariant, variantDto.SKUVariant, product.Id))
+//            {
+//                throw new ApiException("Biến thể đã tồn tại cho sản phẩm này hoặc SKU biến thể đã tồn tại.");
+//            }
+
+//            var variant = _mapper.Map<ProductVariant>(variantDto);
+//            CalculateVariantSalePrice(variant);
+
+//            variant.Id = Guid.NewGuid();
+//            variants.Add(variant);
+//        }
+//    }
+
+//    foreach (var variant in variants)
+//    {
+//        variant.ProductId = product.Id;
+//        await _productVariantRepository.CreateAsync(variant);
+//    }
+
+//    await _productVariantRepository.SaveChangesAsync();
+//}
+
+
+//private void CalculateVariantSalePrice(ProductVariant variant)
+//{
+//    if (variant.DiscountVariant.HasValue && variant.DiscountVariant.Value > 0 && variant.DiscountVariant.Value <= 100)
+//    {
+//        variant.SalePriceVariant = variant.PriceVariant - (variant.PriceVariant * variant.DiscountVariant.Value / 100);
+//    }
+//    else
+//    {
+//        variant.SalePriceVariant = variant.PriceVariant;
+//    }
+//}
+//private async Task<bool> CheckVariantExist(string nameVariant, string skuVariant, Guid productId)
+//{
+//    return await _productVariantRepository.AsQueryable()
+//        .AnyAsync(v => (v.NameVariant == nameVariant || v.SKUVariant == skuVariant) && v.ProductId == productId);
+//}
+
+
+
+

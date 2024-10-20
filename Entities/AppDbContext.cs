@@ -290,11 +290,11 @@ namespace KhanhSkin_BackEnd.Entities
                  .HasForeignKey(oi => oi.OrderId)
                  .OnDelete(DeleteBehavior.Cascade); // Hoặc SetNull tùy thuộc vào logic của bạn
 
-            modelBuilder.Entity<OrderItem>()
-       .HasOne(oi => oi.Variant)
-       .WithMany(v => v.OrderItems)
-       .HasForeignKey(oi => oi.VariantId)
-       .OnDelete(DeleteBehavior.NoAction);
+       //     modelBuilder.Entity<OrderItem>()
+       //.HasOne(oi => oi.Variant)
+       //.WithMany(v => v.OrderItems)
+       //.HasForeignKey(oi => oi.VariantId)
+       //.OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<Order>()
                  .HasOne(o => o.Voucher)
@@ -302,11 +302,11 @@ namespace KhanhSkin_BackEnd.Entities
                  .HasForeignKey(o => o.VoucherId)
                  .OnDelete(DeleteBehavior.NoAction);
 
-            modelBuilder.Entity<OrderItem>()
-                .HasOne(oi => oi.CartItem)
-                .WithMany()
-                .HasForeignKey(oi => oi.CartItemId)
-                .OnDelete(DeleteBehavior.NoAction);
+            //modelBuilder.Entity<OrderItem>()
+            //    .HasOne(oi => oi.CartItem)
+            //    .WithMany()
+            //    .HasForeignKey(oi => oi.CartItemId)
+            //    .OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<Order>()
                 .HasOne(o => o.Cart)

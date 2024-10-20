@@ -4,6 +4,7 @@ using KhanhSkin_BackEnd.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace KhanhSkin_BackEnd.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241017172844_updateVarriantandOrderItem")]
+    partial class updateVarriantandOrderItem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -71,7 +74,7 @@ namespace KhanhSkin_BackEnd.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Addresses", (string)null);
+                    b.ToTable("Addresses");
                 });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Brand", b =>
@@ -89,7 +92,7 @@ namespace KhanhSkin_BackEnd.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Brands", (string)null);
+                    b.ToTable("Brands");
                 });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Cart", b =>
@@ -122,7 +125,7 @@ namespace KhanhSkin_BackEnd.Migrations
                         .IsUnique()
                         .HasFilter("[VoucherId] IS NOT NULL");
 
-                    b.ToTable("Carts", (string)null);
+                    b.ToTable("Carts");
                 });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.CartItem", b =>
@@ -173,7 +176,7 @@ namespace KhanhSkin_BackEnd.Migrations
                         .IsUnique()
                         .HasFilter("[VariantId] IS NOT NULL");
 
-                    b.ToTable("CartItems", (string)null);
+                    b.ToTable("CartItems");
                 });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Category", b =>
@@ -188,7 +191,7 @@ namespace KhanhSkin_BackEnd.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Categories", (string)null);
+                    b.ToTable("Categories");
                 });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Favorite", b =>
@@ -209,7 +212,7 @@ namespace KhanhSkin_BackEnd.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Favorites", (string)null);
+                    b.ToTable("Favorites");
                 });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.OrderItem", b =>
@@ -264,7 +267,7 @@ namespace KhanhSkin_BackEnd.Migrations
 
                     b.HasIndex("ProductVariantId");
 
-                    b.ToTable("OrderItems", (string)null);
+                    b.ToTable("OrderItems");
                 });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Product", b =>
@@ -323,7 +326,7 @@ namespace KhanhSkin_BackEnd.Migrations
                     b.HasIndex("SKU")
                         .IsUnique();
 
-                    b.ToTable("Products", (string)null);
+                    b.ToTable("Products");
                 });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.ProductType", b =>
@@ -338,7 +341,7 @@ namespace KhanhSkin_BackEnd.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ProductTypes", (string)null);
+                    b.ToTable("ProductTypes");
                 });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.ProductVariant", b =>
@@ -381,7 +384,7 @@ namespace KhanhSkin_BackEnd.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("ProductVariants", (string)null);
+                    b.ToTable("ProductVariants");
                 });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.ProductVoucher", b =>
@@ -399,7 +402,7 @@ namespace KhanhSkin_BackEnd.Migrations
 
                     b.HasIndex("VoucherId");
 
-                    b.ToTable("ProductVouchers", (string)null);
+                    b.ToTable("ProductVouchers");
                 });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Review", b =>
@@ -427,7 +430,7 @@ namespace KhanhSkin_BackEnd.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Reviews", (string)null);
+                    b.ToTable("Reviews");
                 });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.User", b =>
@@ -460,7 +463,7 @@ namespace KhanhSkin_BackEnd.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.UserVoucher", b =>
@@ -487,7 +490,7 @@ namespace KhanhSkin_BackEnd.Migrations
 
                     b.HasIndex("VoucherId");
 
-                    b.ToTable("UserVoucher", (string)null);
+                    b.ToTable("UserVoucher");
                 });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Voucher", b =>
@@ -536,7 +539,7 @@ namespace KhanhSkin_BackEnd.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Vouchers", (string)null);
+                    b.ToTable("Vouchers");
                 });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.VoucherActivity", b =>
@@ -563,7 +566,7 @@ namespace KhanhSkin_BackEnd.Migrations
 
                     b.HasIndex("VoucherId");
 
-                    b.ToTable("VoucherActivity", (string)null);
+                    b.ToTable("VoucherActivity");
                 });
 
             modelBuilder.Entity("Order", b =>
@@ -644,7 +647,7 @@ namespace KhanhSkin_BackEnd.Migrations
 
                     b.HasIndex("VoucherId");
 
-                    b.ToTable("Orders", (string)null);
+                    b.ToTable("Orders");
                 });
 
             modelBuilder.Entity("ProductCategory", b =>
@@ -659,7 +662,7 @@ namespace KhanhSkin_BackEnd.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("ProductCategory", (string)null);
+                    b.ToTable("ProductCategory");
                 });
 
             modelBuilder.Entity("ProductProductType", b =>
@@ -674,7 +677,7 @@ namespace KhanhSkin_BackEnd.Migrations
 
                     b.HasIndex("ProductTypeId");
 
-                    b.ToTable("ProductProductType", (string)null);
+                    b.ToTable("ProductProductType");
                 });
 
             modelBuilder.Entity("ProductTypeCategory", b =>
@@ -689,7 +692,7 @@ namespace KhanhSkin_BackEnd.Migrations
 
                     b.HasIndex("ProductTypeId");
 
-                    b.ToTable("ProductTypeCategory", (string)null);
+                    b.ToTable("ProductTypeCategory");
                 });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Address", b =>

@@ -17,9 +17,13 @@ namespace KhanhSkin_BackEnd.Services.Orders
                 .ForMember(dest => dest.OrderItems, opt => opt.MapFrom(src => src.OrderItems)) // Ánh xạ OrderItems
                 .ForMember(dest => dest.ShippingMethodDes, opt => opt.MapFrom(src => src.ShippingMethod.GetDescription())) // Ánh xạ mô tả ShippingMethod
                 .ForMember(dest => dest.PaymentMethodDes, opt => opt.MapFrom(src => src.PaymentMethod.GetDescription())) // Ánh xạ mô tả PaymentMethod
-                .ForMember(dest => dest.OrderStatusDes, opt => opt.MapFrom(src => src.OrderStatus.GetDescription())); // Ánh xạ mô tả OrderStatus
-
-            // Mapping từ Cart sang Order
+                .ForMember(dest => dest.OrderStatusDes, opt => opt.MapFrom(src => src.OrderStatus.GetDescription()))// Ánh xạ mô tả OrderStatus
+                 .ForMember(dest => dest.PhoneNumber, opt => opt.MapFrom(src => src.PhoneNumber)) // Ánh xạ PhoneNumber
+                .ForMember(dest => dest.Province, opt => opt.MapFrom(src => src.Province)) // Ánh xạ Province
+                .ForMember(dest => dest.District, opt => opt.MapFrom(src => src.District)) // Ánh xạ District
+                .ForMember(dest => dest.Ward, opt => opt.MapFrom(src => src.Ward)) // Ánh xạ Ward
+                .ForMember(dest => dest.AddressDetail, opt => opt.MapFrom(src => src.AddressDetail)); // Ánh xạ AddressDetail
+                    // Mapping từ Cart sang Order
             CreateMap<Cart, Order>()
                 .ForMember(dest => dest.OrderItems, opt => opt.MapFrom(src => src.CartItems))
                 .ForMember(dest => dest.DiscountValue, opt => opt.MapFrom(src => src.DiscountValue))

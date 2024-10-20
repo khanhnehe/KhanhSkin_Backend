@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using KhanhSkin_BackEnd.Dtos.Brand;
+using KhanhSkin_BackEnd.Dtos.CartItem;
 using KhanhSkin_BackEnd.Dtos.Category;
 using KhanhSkin_BackEnd.Dtos.Product;
 using KhanhSkin_BackEnd.Dtos.ProductType;
@@ -60,6 +61,12 @@ namespace KhanhSkin_BackEnd.Services.Products
                 .ForMember(dest => dest.ProductTypes, opt => opt.MapFrom(src => src.ProductTypes.Select(pt => new ProductTypeDto { Id = pt.Id, TypeName = pt.TypeName }).ToList()));
 
             CreateMap<ProductVariantDto, CreateUpdateProductVariantDto>();
+            // Ánh xạ từ CartItem sang CartItemDto
+            CreateMap<CartItem, CartItemDto>()
+                .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product.ProductName))
+                .ForMember(dest => dest.NameVariant, opt => opt.MapFrom(src => src.Variant != null ? src.Variant.NameVariant : null))
+                .ForMember(dest => dest.ProductPrice, opt => opt.MapFrom(src => src.Variant != null ? src.Variant.PriceVariant : src.Product.Price))
+                .ForMember(dest => dest.ProductSalePrice, opt => opt.MapFrom(src => src.Variant != null ? src.Variant.SalePriceVariant : src.Product.SalePrice));
 
         }
     }

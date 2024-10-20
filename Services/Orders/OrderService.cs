@@ -71,7 +71,9 @@ namespace KhanhSkin_BackEnd.Services.Orders
 
             var cart = await _cartRepository.AsQueryable()
                 .Include(c => c.CartItems)
-                .ThenInclude(ci => ci.Variant)
+                    .ThenInclude(ci => ci.Product)
+                .Include(c => c.CartItems)
+                    .ThenInclude(ci => ci.Variant)
                 .Include(c => c.Voucher)
                 .FirstOrDefaultAsync(c => c.Id == input.CartId && c.UserId == userId);
 
@@ -90,7 +92,7 @@ namespace KhanhSkin_BackEnd.Services.Orders
             {
                 UserId = userId.Value,
                 CartId = cart.Id,
-               DiscountValue = cart.DiscountValue,
+                DiscountValue = cart.DiscountValue,
                 ShippingMethod = input.ShippingMethod,
                 PaymentMethod = input.PaymentMethod,
                 OrderDate = DateTime.Now,
@@ -99,11 +101,11 @@ namespace KhanhSkin_BackEnd.Services.Orders
                 District = address.District,
                 Ward = address.Ward,
                 AddressDetail = address.AddressDetail,
-                OrderItems = _mapper.Map<ICollection<OrderItem>>(cart.CartItems),
-                ShippingPrice = (input.ShippingMethod == ShippingMethod.FasfDelivery) ? 35000 : 25000
+                ShippingPrice = (input.ShippingMethod == ShippingMethod.FasfDelivery) ? 35000 : 25000,
             };
 
-            // Áp dụng voucher nếu có
+            order.FinalPrice = cart.FinalPrice + order.ShippingPrice;
+
             if (cart.VoucherId.HasValue)
             {
                 var voucher = await _voucherRepository
@@ -121,41 +123,37 @@ namespace KhanhSkin_BackEnd.Services.Orders
                     throw new Exception("Giá trị đơn hàng không đủ để áp dụng voucher.");
                 }
 
-                if (voucher.VoucherType == VoucherType.Specific)
-                {
-                    var productIdsInCart = cart.CartItems.Select(ci => ci.ProductId).ToList();
-                    var productIdsInVoucher = voucher.ProductVouchers.Select(pv => pv.ProductId).ToList();
-
-                    var validProducts = productIdsInCart.Intersect(productIdsInVoucher).ToList();
-
-                    if (!validProducts.Any())
-                    {
-                        throw new Exception("Voucher chỉ áp dụng cho một số sản phẩm nhất định.");
-                    }
-                }
-
-                if (voucher.TotalUses > 0)
-                {
-                    voucher.TotalUses--;
-                    await _voucherRepository.UpdateAsync(voucher);
-                }
-                else
-                {
-                    throw new Exception("Voucher đã hết lượt sử dụng.");
-                }
+                order.VoucherId = voucher.Id;
             }
 
-            // Tính toán tổng giá trị đơn hàng
-            order.FinalPrice = cart.FinalPrice + order.ShippingPrice;
+            var orderItems = new List<OrderItem>();
 
-            // Giảm số lượng sản phẩm và variant khi đơn hàng được đặt thành công
+            foreach (var cartItem in cart.CartItems)
+            {
+                var orderItem = new OrderItem
+                {
+                    ProductId = cartItem.ProductId,
+                    ProductName = cartItem.Product.ProductName,
+                    VariantId = cartItem.VariantId,
+                    NameVariant = cartItem.Variant?.NameVariant,
+                    ProductPrice = cartItem.ProductPrice,
+                    ProductSalePrice = cartItem.ProductSalePrice,
+                    Amount = cartItem.Amount,
+                    ItemsPrice = cartItem.ItemsPrice,
+                    Images = cartItem.Product.Images.ToList()
+                };
+
+                orderItems.Add(orderItem);
+            }
+
+            order.OrderItems = orderItems;
+
             foreach (var cartItem in cart.CartItems)
             {
                 var product = await _productRepository.GetAsync(cartItem.ProductId);
 
                 if (cartItem.VariantId.HasValue)
                 {
-                    // Nếu sản phẩm có variant, giảm số lượng của variant và product
                     var variant = await _productVariantRepository.GetAsync(cartItem.VariantId.Value);
                     if (variant == null)
                     {
@@ -167,13 +165,12 @@ namespace KhanhSkin_BackEnd.Services.Orders
                         throw new Exception($"Số lượng variant {variant.NameVariant} không đủ để thực hiện đơn hàng.");
                     }
 
-                    variant.QuantityVariant -= cartItem.Amount; // Trừ số lượng variant
-                    product.Quantity -= cartItem.Amount; // Trừ số lượng tổng của product
+                    variant.QuantityVariant -= cartItem.Amount;
+                    product.Quantity -= cartItem.Amount;
                     await _productVariantRepository.UpdateAsync(variant);
                 }
                 else
                 {
-                    // Nếu không có variant, chỉ giảm số lượng của product
                     if (product.Quantity < cartItem.Amount)
                     {
                         throw new Exception($"Số lượng sản phẩm {product.ProductName} không đủ để thực hiện đơn hàng.");
@@ -189,21 +186,17 @@ namespace KhanhSkin_BackEnd.Services.Orders
 
             await _orderRepository.CreateAsync(order);
 
-            // Xóa giỏ hàng sau khi tạo đơn 
             await _cartRepository.DeleteAsync(cart.Id);
 
-            // Trả về OrderDto
             var orderDto = _mapper.Map<OrderDto>(order);
             orderDto.Address = _mapper.Map<AddressDto>(address);
 
-            //lấy mô tả cho enum
             orderDto.ShippingMethodDes = order.ShippingMethod.GetDescription();
             orderDto.PaymentMethodDes = order.PaymentMethod.GetDescription();
             orderDto.OrderStatusDes = order.OrderStatus.GetDescription();
 
             return orderDto;
         }
-
 
         private string CreateTrackingCode()
         {
@@ -264,8 +257,7 @@ namespace KhanhSkin_BackEnd.Services.Orders
             // Lấy thông tin đơn hàng từ cơ sở dữ liệu
             var order = await _orderRepository.AsQueryable()
                 .Include(o => o.OrderItems)
-                .ThenInclude(oi => oi.Product) // Bao gồm thông tin sản phẩm của từng mục đơn hàng
-                .FirstOrDefaultAsync(o => o.Id == input.OrderId); 
+                .FirstOrDefaultAsync(o => o.Id == input.OrderId);
 
             if (order == null)
             {
@@ -277,15 +269,15 @@ namespace KhanhSkin_BackEnd.Services.Orders
 
             if (status == "cancel")
             {
-                await CancelOrder(order); // Hủy
+                await CancelOrder(order); // Hủy đơn hàng
             }
             else if (status == "confirm")
             {
-                await ConfirmOrder(order); // Xác nhận 
+                await ConfirmOrder(order); // Xác nhận đơn hàng
             }
             else if (status == "receive")
             {
-                await ReceiveOrder(order); // đã nhận
+                await ReceiveOrder(order); // Đã nhận hàng
             }
             else
             {
@@ -295,15 +287,12 @@ namespace KhanhSkin_BackEnd.Services.Orders
             await _orderRepository.UpdateAsync(order);
 
             var orderDto = _mapper.Map<OrderDto>(order);
-            //orderDto.Address = _mapper.Map<AddressDto>(order.Address);
-
             orderDto.OrderStatusDes = order.OrderStatus.GetDescription();
-
 
             return orderDto;
         }
 
-        // hủy đơn hàng
+        // Hủy đơn hàng và cập nhật lại số lượng sản phẩm/biến thể
         private async Task CancelOrder(Order order)
         {
             order.OrderStatus = Enums.OrderStatus.Canceled;
@@ -312,63 +301,55 @@ namespace KhanhSkin_BackEnd.Services.Orders
             // Trả lại số lượng sản phẩm và variant (nếu có)
             foreach (var orderItem in order.OrderItems)
             {
-                // Lấy sản phẩm và bao gồm cả danh sách các biến thể
+                // Lấy sản phẩm từ cơ sở dữ liệu dựa vào ProductId
                 var product = await _productRepository.AsQueryable()
                     .Include(p => p.Variants) // Bao gồm biến thể của sản phẩm
                     .FirstOrDefaultAsync(p => p.Id == orderItem.ProductId);
 
                 if (product == null)
                 {
-                    throw new Exception($"Không tìm thấy sản phẩm với productId {orderItem.ProductId}.");
+                    _logger.LogWarning($"Không tìm thấy sản phẩm với productId {orderItem.ProductId}. Không thể cập nhật lại số lượng.");
+                    // Tiếp tục với sản phẩm khác, không cập nhật số lượng nếu không tìm thấy sản phẩm
+                    continue;
                 }
 
                 // Nếu sản phẩm có Variant
                 if (orderItem.VariantId.HasValue)
                 {
                     var variant = product.Variants.FirstOrDefault(v => v.Id == orderItem.VariantId.Value);
+
+                    // Trường hợp biến thể đã bị xóa
                     if (variant == null)
                     {
-                        throw new Exception($"Không tìm thấy biến thể cho sản phẩm {product.ProductName} với variantId {orderItem.VariantId.Value}.");
+                        _logger.LogWarning($"Không tìm thấy biến thể cho sản phẩm {product.ProductName} với variantId {orderItem.VariantId.Value}. Không thể cập nhật lại số lượng biến thể.");
+                        // Tiếp tục với các biến thể/sản phẩm khác, không cập nhật số lượng nếu không tìm thấy variant
+                        continue;
                     }
 
                     // Cập nhật lại số lượng cho variant
                     variant.QuantityVariant += orderItem.Amount;
                     _logger.LogInformation("Cập nhật lại số lượng biến thể cho variantId: {VariantId}", orderItem.VariantId.Value);
-
-                    // Cập nhật lại số lượng của sản phẩm bằng với số lượng thay đổi của biến thể
-                    product.Quantity += orderItem.Amount;
-                    _logger.LogInformation("Cập nhật lại số lượng sản phẩm cho productId: {ProductId} theo biến thể", product.Id);
-                }
-                else
-                {
-                    // Nếu sản phẩm không có Variant, chỉ cộng lại số lượng sản phẩm
-                    product.Quantity += orderItem.Amount;
-                    _logger.LogInformation("Cập nhật lại số lượng sản phẩm cho productId: {ProductId}", orderItem.ProductId);
                 }
 
-                // Cập nhật lại sản phẩm sau khi điều chỉnh
+                // Cập nhật lại số lượng của sản phẩm (chỉ khi sản phẩm tồn tại)
+                product.Quantity += orderItem.Amount;
+                _logger.LogInformation("Cập nhật lại số lượng sản phẩm cho productId: {ProductId}", product.Id);
+
                 await _productRepository.UpdateAsync(product);
             }
-
-            var orderDto = _mapper.Map<OrderDto>(order);
-            orderDto.OrderStatusDes = order.OrderStatus.GetDescription();
         }
 
-
-        // xác nhận đơn hàng
+        // Xác nhận đơn hàng
         private async Task ConfirmOrder(Order order)
         {
-            order.OrderStatus = Enums.OrderStatus.Shipping; 
+            order.OrderStatus = Enums.OrderStatus.Shipping;
             order.DeliveryDate = DateTime.Now;
-
-            var orderDto = _mapper.Map<OrderDto>(order);
-            orderDto.OrderStatusDes = order.OrderStatus.GetDescription();
         }
 
-        // đã nhận
+        // Đã nhận hàng
         private async Task ReceiveOrder(Order order)
         {
-            order.OrderStatus = Enums.OrderStatus.Completed; 
+            order.OrderStatus = Enums.OrderStatus.Completed;
 
             // Cập nhật số lượng mua của sản phẩm
             foreach (var orderItem in order.OrderItems)
@@ -380,12 +361,8 @@ namespace KhanhSkin_BackEnd.Services.Orders
                 }
 
                 product.Purchases += orderItem.Amount; // Tăng số lượng mua của sản phẩm
-
-                await _productRepository.UpdateAsync(product); 
+                await _productRepository.UpdateAsync(product);
             }
-
-            var orderDto = _mapper.Map<OrderDto>(order);
-            orderDto.OrderStatusDes = order.OrderStatus.GetDescription();
         }
 
         public async Task<List<OrderDto>> GetAllOrders()
@@ -412,7 +389,7 @@ namespace KhanhSkin_BackEnd.Services.Orders
         }
 
 
-        public async Task<List<OrderDto>> GetOrderByStatus(OrderGetRequestInputDto input)
+        public async Task<List<Order>> GetOrderByStatus(OrderGetRequestInputDto input)
         {
             // Bắt đầu truy vấn với tất cả đơn hàng
             var query = _orderRepository.AsQueryable()
@@ -421,24 +398,55 @@ namespace KhanhSkin_BackEnd.Services.Orders
                 //.Include(o => o.Address)
                 .AsNoTracking();
 
+            query = query.OrderByDescending(o => o.OrderDate);
+
             // Kiểm tra nếu người dùng muốn lọc theo trạng thái đơn hàng
             if (input.OrderStatus.HasValue)
             {
                 query = query.Where(o => o.OrderStatus == input.OrderStatus.Value);
             }
 
-            // Các logic lọc khác nếu có
-            // ví dụ: lọc theo userId hoặc ngày tạo đơn hàng
+            // Kiểm tra nếu người dùng muốn lọc theo StartDate
+            if (input.StartDate.HasValue)
+            {
+                query = query.Where(o => o.OrderDate >= input.StartDate.Value);
+            }
 
-            // Lấy danh sách đơn hàng sau khi lọc
+            // Kiểm tra nếu người dùng muốn lọc theo EndDate
+            if (input.EndDate.HasValue)
+            {
+                query = query.Where(o => o.OrderDate <= input.EndDate.Value);
+            }
+
+            // Kiểm tra nếu có giá trị FreeTextSearch, tìm theo ProductName và FullName
+            if (!string.IsNullOrEmpty(input.FreeTextSearch))
+            {
+                query = query.Where(o => o.OrderItems.Any(oi => oi.ProductName.Contains(input.FreeTextSearch))
+                                      || o.User.FullName.Contains(input.FreeTextSearch)
+                                      || o.TrackingCode.Contains(input.FreeTextSearch));
+            }
+
+            // Thực hiện phân trang
+            int skip = (input.PageIndex - 1) * input.PageSize; // Số bản ghi cần bỏ qua
+            query = query.Skip(skip).Take(input.PageSize); // Lấy số lượng bản ghi theo PageSize
+
+            // Lấy danh sách đơn hàng sau khi áp dụng các điều kiện lọc
             var orders = await query.ToListAsync();
 
-            // Ánh xạ kết quả sang OrderDto và trả về
-            var orderDtos = _mapper.Map<List<OrderDto>>(orders);
-            return orderDtos;
+            // Nếu không tìm thấy đơn hàng, trả về danh sách rỗng
+            if (orders == null || !orders.Any())
+            {
+                return new List<Order>();
+            }
+
+            // Ánh xạ danh sách đơn hàng sang OrderDto và trả về
+            return orders;
+            ;
         }
 
-        public async Task<List<OrderDto>> GetOrderByUserIdAndStatus(OrderGetRequestInputDto input)
+
+
+        public async Task<List<Order>> GetOrderByUserIdAndStatus(OrderGetRequestInputDto input)
         {
             try
             {
@@ -457,10 +465,30 @@ namespace KhanhSkin_BackEnd.Services.Orders
                     .Where(o => o.UserId == userId.Value) // Lọc theo UserId của người dùng hiện tại
                     .AsNoTracking();
 
+                query = query.OrderByDescending(o => o.OrderDate);
+
                 // Lọc theo trạng thái đơn hàng nếu có
                 if (input.OrderStatus.HasValue)
                 {
                     query = query.Where(o => o.OrderStatus == input.OrderStatus.Value);
+                }
+
+                // Lọc theo StartDate và EndDate nếu có
+                if (input.StartDate.HasValue)
+                {
+                    query = query.Where(o => o.OrderDate >= input.StartDate.Value);
+                }
+                if (input.EndDate.HasValue)
+                {
+                    query = query.Where(o => o.OrderDate <= input.EndDate.Value);
+                }
+
+                // Kiểm tra nếu có giá trị FreeTextSearch, tìm theo ProductName và FullName
+                if (!string.IsNullOrEmpty(input.FreeTextSearch))
+                {
+                    query = query.Where(o => o.OrderItems.Any(oi => oi.ProductName.Contains(input.FreeTextSearch))
+                                          || o.User.FullName.Contains(input.FreeTextSearch)
+                                          || o.TrackingCode.Contains(input.FreeTextSearch));
                 }
 
                 // Lấy danh sách đơn hàng sau khi áp dụng các điều kiện lọc
@@ -469,12 +497,12 @@ namespace KhanhSkin_BackEnd.Services.Orders
                 // Nếu không tìm thấy đơn hàng, trả về danh sách rỗng
                 if (orders == null || !orders.Any())
                 {
-                    return new List<OrderDto>();
+                    return new List<Order>();
                 }
 
                 // Ánh xạ danh sách đơn hàng sang OrderDto và trả về
-                var orderDtos = _mapper.Map<List<OrderDto>>(orders);
-                return orderDtos;
+                return  orders;
+                ;
             }
             catch (Exception ex)
             {

@@ -9,6 +9,9 @@ namespace KhanhSkin_BackEnd.Entities
         [Required(ErrorMessage = "Vui lòng nhập số điện thoại!")]
         public string PhoneNumber { get; set; }
 
+        [Required(ErrorMessage = "Vui lòng nhập số tên!")]
+        public string FullName { get; set; }
+
         [Required(ErrorMessage = "Vui lòng chọn tỉnh!")]
         public int ProvinceId { get; set; } // ID của tỉnh
 

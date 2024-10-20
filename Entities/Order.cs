@@ -56,6 +56,7 @@ public class Order : BaseEntity
 
     [Required]
     public string AddressDetail { get; set; }
+    public string? Note { get; set; }
 
     public DateTime OrderDate { get; set; } = DateTime.Now;
 

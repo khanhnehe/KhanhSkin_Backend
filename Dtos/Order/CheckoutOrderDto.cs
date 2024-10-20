@@ -7,9 +7,7 @@ namespace KhanhSkin_BackEnd.Dtos.Order
 {
     public class CheckoutOrderDto : BaseDto
     {
-        [Required]
-        public Guid UserId { get; set; } // ID của người dùng thực hiện thanh toán
-
+      
         [Required]
         public Guid CartId { get; set; } // ID của giỏ hàng
 
@@ -22,5 +20,8 @@ namespace KhanhSkin_BackEnd.Dtos.Order
 
         [Required]
         public Enums.PaymentMethod PaymentMethod { get; set; } // Phương thức thanh toán
+
+        public string? Note { get; set; }
+
     }
 }
