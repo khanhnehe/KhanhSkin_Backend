@@ -238,5 +238,28 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+        [HttpPost("get-paged-products")]
+        public async Task<IActionResult> GetPagedProducts([FromBody] ProductGetRequestInputDto input)
+        {
+            try
+            {
+                // Gọi tới service để lấy sản phẩm phân trang dựa trên input từ body
+                var pagedProducts = await _productService.GetPagedProducts(input);
+
+                // Trả về kết quả với dữ liệu sản phẩm đã phân trang
+                return Ok(pagedProducts);
+            }
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, $"Failed to fetch paged products: {ex.Message}");
+                return StatusCode(ex.StatusCode, new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"An unexpected error occurred while fetching paged products: {ex.Message}");
+                return StatusCode(500, new { error = $"Có lỗi xảy ra: {ex.Message}" });
+            }
+        }
+
     }
 }

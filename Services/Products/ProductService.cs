@@ -20,6 +20,7 @@ using KhanhSkin_BackEnd.Dtos.Category;
 using KhanhSkin_BackEnd.Dtos.ProductType;
 using KhanhSkin_BackEnd.Dtos.Cart;
 using KhanhSkin_BackEnd.Services.Carts;
+using KhanhSkin_BackEnd.Share.Dtos;
 
 
 namespace KhanhSkin_BackEnd.Services.Products
@@ -214,6 +215,7 @@ namespace KhanhSkin_BackEnd.Services.Products
                 var product = await _productRepository.AsQueryable()
                     .Include(p => p.Variants)
                     .Include(p => p.Categories)
+                    .Include(p => p.Brand)
                     .Include(p => p.ProductTypes)
                     .FirstOrDefaultAsync(a => a.Id == id);
 
@@ -270,11 +272,48 @@ namespace KhanhSkin_BackEnd.Services.Products
                     .Where(ci => ci.ProductId == id)
                     .ToListAsync();
 
-                // Xóa CartItems có liên quan đến sản phẩm hoặc biến thể đã chỉnh sửa
-                if (relatedCartItems.Any())
+                // **Cập nhật thông tin sản phẩm trong CartItem trước khi gọi lại AddProductToCart**
+                foreach (var cartItem in relatedCartItems)
                 {
-                    _cartItemRepository.Table.RemoveRange(relatedCartItems);
-                    await _cartItemRepository.SaveChangesAsync();
+                    if (cartItem.VariantId == null)
+                    {
+                        // Cập nhật thông tin cho sản phẩm không có biến thể
+                        cartItem.ProductName = product.ProductName;
+                        cartItem.ProductPrice = product.Price;
+                        cartItem.ProductSalePrice = (decimal)product.SalePrice;
+                        cartItem.Images = product.Images; // Cập nhật danh sách hình ảnh
+
+                        // Gọi lại AddProductToCart để cập nhật giá và các thông tin khác
+                        var addProductToCartDto = new AddProductToCartDto
+                        {
+                            ProductId = product.Id,
+                            AmountAdd = 0
+                        };
+
+                        await _cartService.AddProductToCart(addProductToCartDto);
+                    }
+                    else
+                    {
+                        // Cập nhật thông tin cho sản phẩm có biến thể
+                        var variant = product.Variants.FirstOrDefault(v => v.Id == cartItem.VariantId);
+                        if (variant != null)
+                        {
+                            cartItem.ProductName = product.ProductName;
+                            cartItem.NameVariant = variant.NameVariant; // Tên biến thể
+                            cartItem.ProductPrice = variant.PriceVariant; // Giá của biến thể
+                            cartItem.ProductSalePrice = (decimal)variant.SalePriceVariant; 
+
+                            // Gọi lại AddProductToCart để cập nhật biến thể
+                            var addVariantToCartDto = new AddProductToCartDto
+                            {
+                                ProductId = product.Id,
+                                VariantId = variant.Id,
+                                AmountAdd = 0
+                            };
+
+                            await _cartService.AddProductToCart(addVariantToCartDto);
+                        }
+                    }
                 }
 
                 // Cập nhật hoặc thêm mới các biến thể
@@ -290,17 +329,6 @@ namespace KhanhSkin_BackEnd.Services.Products
                     {
                         // Cập nhật biến thể hiện có
                         _mapper.Map(variantDto, existingVariant);
-
-                        // Tìm và xóa CartItems liên quan đến biến thể đã chỉnh sửa
-                        var variantCartItems = await _cartItemRepository.AsQueryable()
-                            .Where(ci => ci.VariantId == existingVariant.Id)
-                            .ToListAsync();
-
-                        if (variantCartItems.Any())
-                        {
-                            _cartItemRepository.Table.RemoveRange(variantCartItems);
-                            await _cartItemRepository.SaveChangesAsync();
-                        }
                     }
                     else
                     {
@@ -325,21 +353,6 @@ namespace KhanhSkin_BackEnd.Services.Products
                 // Cập nhật các quan hệ nhiều-nhiều khác (Categories, ProductTypes)
                 await UpdateProductRelationships(product, input);
 
-                // Thêm lại sản phẩm hoặc biến thể vào giỏ hàng
-                foreach (var variant in existingVariants)
-                {
-                    // Nếu sản phẩm có biến thể, thêm lại biến thể phù hợp
-                    var addProductToCartDto = new AddProductToCartDto
-                    {
-                        ProductId = product.Id,
-                        VariantId = variant != null ? variant.Id : null, // Nếu có biến thể, đặt VariantId
-                        AmountAdd = 1 // Giả sử số lượng thêm lại là 1, có thể thay đổi tùy logic
-                    };
-
-                    // Gọi phương thức để thêm lại sản phẩm hoặc biến thể vào giỏ hàng
-                    await _cartService.AddProductToCart(addProductToCartDto);
-                }
-
                 // Lưu thay đổi sản phẩm
                 await _productRepository.UpdateAsync(product);
 
@@ -351,8 +364,6 @@ namespace KhanhSkin_BackEnd.Services.Products
                 throw;
             }
         }
-
-
 
         // Hàm phụ trợ để cập nhật quan hệ nhiều-nhiều (Categories, ProductTypes)
         private async Task UpdateProductRelationships(Product product, CreateUpdateProductDto input)
@@ -492,6 +503,7 @@ namespace KhanhSkin_BackEnd.Services.Products
                 .Include(p => p.Categories)
                 .Include(p => p.ProductTypes)
                 .Include(p => p.Variants)
+               .OrderByDescending(p => p.CreatedDate)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (product == null)
@@ -502,12 +514,154 @@ namespace KhanhSkin_BackEnd.Services.Products
             return _mapper.Map<ProductDto>(product);
         }
 
+        public virtual async Task<PagedViewModel<ProductDto>> GetPagedProducts(ProductGetRequestInputDto input)
+        {
+            // Bắt đầu từ truy vấn cơ bản
+            var query = CreateFilteAllProduct(input);
 
+            // Đếm tổng số bản ghi thỏa mãn điều kiện
+            var totalCount = await query.CountAsync();
+
+            // Áp dụng phân trang
+            query = query.Skip((input.PageIndex - 1) * input.PageSize)
+                         .Take(input.PageSize);
+
+            // Lấy dữ liệu sau khi phân trang
+            var data = await query.ToListAsync();
+
+            // Trả về kết quả dưới dạng `PagedViewModel`
+            return new PagedViewModel<ProductDto>
+            {
+                Items = data,
+                TotalRecord = totalCount
+            };
+        }
+
+
+
+        public virtual IQueryable<ProductDto> CreateFilteAllProduct(ProductGetRequestInputDto input)
+        {
+            // Bắt đầu với một query cơ bản từ repository
+            var query = _repository.AsQueryable();
+
+            // Tìm kiếm theo FreeTextSearch (ProductName hoặc SKU)
+            if (!string.IsNullOrEmpty(input.FreeTextSearch))
+            {
+                var freeTextSearch = input.FreeTextSearch.ToLower();
+                query = query.Where(p => p.ProductName.ToLower().Contains(freeTextSearch) ||
+                                          p.SKU.ToLower().Contains(freeTextSearch));
+            }
+
+            // Áp dụng sắp xếp dựa trên SortBy và IsAscending
+            if (!string.IsNullOrWhiteSpace(input.SortBy))
+            {
+                // Xác định chiều sắp xếp
+                var sortingOrder = input.IsAscending ? "ascending" : "descending";
+
+                // Sắp xếp theo các tiêu chí khác nhau dựa trên SortBy
+                switch (input.SortBy.ToLower())
+                {
+                    case "price":
+                        query = input.IsAscending ? query.OrderBy(p => p.Price) : query.OrderByDescending(p => p.Price);
+                        break;
+
+                    case "purchases":
+                        query = input.IsAscending ? query.OrderBy(p => p.Purchases) : query.OrderByDescending(p => p.Purchases);
+                        break;
+
+                    case "averagerating":
+                        query = input.IsAscending ? query.OrderBy(p => p.AverageRating) : query.OrderByDescending(p => p.AverageRating);
+                        break;
+
+                    case "quantity":
+                        query = input.IsAscending ? query.OrderBy(p => p.Quantity) : query.OrderByDescending(p => p.Quantity);
+                        break;
+
+
+                    case "createddate":
+                    default:
+                        // Mặc định sắp xếp theo ngày tạo (mới nhất)
+                        query = input.IsAscending ? query.OrderBy(p => p.CreatedDate) : query.OrderByDescending(p => p.CreatedDate);
+                        break;
+                }
+            }
+            else
+            {
+                // Mặc định sắp xếp theo ngày tạo nếu không có điều kiện sắp xếp
+                query = query.OrderByDescending(p => p.CreatedDate);
+            }
+
+            // Lựa chọn các trường cần thiết
+            var selectedQuery = query
+                .Include(p => p.Brand)        // Bao gồm các bảng liên quan nếu cần
+                .Include(p => p.Categories)   // Bao gồm danh mục sản phẩm
+                .Include(p => p.ProductTypes) // Bao gồm loại sản phẩm
+                .Include(p => p.Variants)
+                .Select(p => new ProductDto
+                {
+                    Id = p.Id,
+                    ProductName = p.ProductName,
+                    Price = p.Price,
+                    Discount = p.Discount,
+                    SalePrice = p.SalePrice,
+                    Brand = new BrandDto
+                    {
+                        Id = p.Brand.Id,
+                        BrandName = p.Brand.BrandName
+                    },
+                    Categories = p.Categories.Select(c => new CategoryDto
+                    {
+                        Id = c.Id,
+                        CategoryName = c.CategoryName
+                    }).ToList(),
+                    ProductTypes = p.ProductTypes.Select(pt => new ProductTypeDto
+                    {
+                        Id = pt.Id,
+                        TypeName = pt.TypeName
+                    }).ToList(),
+                    Variants = p.Variants.Select(v => new ProductVariantDto
+                    {
+                        Id = v.Id,// Lấy ra NameVarian
+                        NameVariant = v.NameVariant,
+                        SKUVariant = v.SKUVariant,
+                        PriceVariant = v.PriceVariant,
+                        SalePriceVariant = v.SalePriceVariant,
+                        QuantityVariant = v.QuantityVariant,
+                        ImageUrl = v.ImageUrl,
+
+                    }).ToList(),
+
+                    Purchases = p.Purchases,
+                    AverageRating = p.AverageRating,
+                    Images = p.Images,
+                    Quantity = p.Quantity,
+                    SKU = p.SKU,
+                    Description = p.Description,
+
+                });
+
+            return selectedQuery;
+        }
+
+
+
+        /// <summary>
+        /// //////////////
+        /// </summary>
+        /// <returns></returns>
 
         public virtual IQueryable<ProductDto> CreateFilteredQuery(ProductGetRequestInputDto input)
         {
             // Bắt đầu với một query cơ bản từ repository
             var query = _repository.AsQueryable();
+            // Tìm kiếm theo FreeTextSearch (ProductName hoặc SKU)
+            if (!string.IsNullOrEmpty(input.FreeTextSearch))
+            {
+                var freeTextSearch = input.FreeTextSearch.ToLower();
+                query = query.Where(p => p.ProductName.ToLower().Contains(freeTextSearch) ||
+                                          p.SKU.ToLower().Contains(freeTextSearch));
+            }
+
 
             // Áp dụng các điều kiện lọc nếu có
             // Áp dụng các điều kiện lọc nếu có
@@ -537,6 +691,8 @@ namespace KhanhSkin_BackEnd.Services.Products
                 query = query.Where(p => p.Price <= input.MaxPrice.Value);
             }
 
+           
+
 
             // Áp dụng sắp xếp dựa trên SortBy và IsAscending
             if (!string.IsNullOrWhiteSpace(input.SortBy))
@@ -559,6 +715,11 @@ namespace KhanhSkin_BackEnd.Services.Products
                         query = input.IsAscending ? query.OrderBy(p => p.AverageRating) : query.OrderByDescending(p => p.AverageRating);
                         break;
 
+                    case "quantity":
+                        query = input.IsAscending ? query.OrderBy(p => p.Quantity) : query.OrderByDescending(p => p.Quantity);
+                        break;
+
+
                     case "createddate":
                     default:
                         // Mặc định sắp xếp theo ngày tạo (mới nhất)
@@ -577,6 +738,7 @@ namespace KhanhSkin_BackEnd.Services.Products
                 .Include(p => p.Brand)        // Bao gồm các bảng liên quan nếu cần
                 .Include(p => p.Categories)   // Bao gồm danh mục sản phẩm
                 .Include(p => p.ProductTypes) // Bao gồm loại sản phẩm
+
                 .Select(p => new ProductDto
                 {
                     Id = p.Id,
@@ -618,6 +780,8 @@ namespace KhanhSkin_BackEnd.Services.Products
             return filteredProducts;
         }
     
+
+
 
     //public override IQueryable<Product> CreateFilteredQuery(ProductGetRequestInputDto input)
     //{

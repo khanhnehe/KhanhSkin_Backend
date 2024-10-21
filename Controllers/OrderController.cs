@@ -102,23 +102,24 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
-        [HttpPost("get-orders-by-status")]
-        public async Task<IActionResult> GetOrdersByStatus([FromBody] OrderGetRequestInputDto input)
+        [HttpPost("get-paged-orders")]
+        public async Task<IActionResult> GetPagedOrders([FromBody] OrderGetRequestInputDto input)
         {
             try
             {
-                var orderDtos = await _orderService.GetOrderByStatus(input);
-                return Ok(orderDtos);
+                var pagedOrders = await _orderService.GetPagedOrders(input);
+
+                return Ok(pagedOrders);
             }
             catch (ApiException ex)
             {
-                _logger.LogError(ex, $"Failed to retrieve orders by status: {ex.Message}");
-                throw new ApiException(ex.Message, ex.StatusCode);
+                _logger.LogError(ex, $"Failed to fetch paged products: {ex.Message}");
+                return StatusCode(ex.StatusCode, new { error = ex.Message });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"An error occurred while retrieving orders by status: {ex.Message}");
-                throw new ApiException($"{ex.Message}");
+                _logger.LogError(ex, $"An unexpected error occurred while fetching paged products: {ex.Message}");
+                return StatusCode(500, new { error = $"Có lỗi xảy ra: {ex.Message}" });
             }
         }
 

@@ -8,6 +8,6 @@ namespace KhanhSkin_BackEnd.Dtos.Cart
         public int AmountAdd { get; set; }
         public Guid? VariantId { get; set; }
         public Guid? VoucherId { get; set; }
-
+        public Guid? UserId { get; internal set; }
     }
 }

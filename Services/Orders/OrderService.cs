@@ -3,10 +3,12 @@ using KhanhSkin_BackEnd.Consts;
 using KhanhSkin_BackEnd.Dtos.Address;
 using KhanhSkin_BackEnd.Dtos.Cart;
 using KhanhSkin_BackEnd.Dtos.Order;
+using KhanhSkin_BackEnd.Dtos.Product;
 using KhanhSkin_BackEnd.Entities;
 using KhanhSkin_BackEnd.Helper;
 using KhanhSkin_BackEnd.Repositories;
 using KhanhSkin_BackEnd.Services.CurrentUser;
+using KhanhSkin_BackEnd.Share.Dtos;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -14,6 +16,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using static KhanhSkin_BackEnd.Consts.Enums;
+using System.Text.RegularExpressions;
 
 namespace KhanhSkin_BackEnd.Services.Orders
 {
@@ -389,7 +392,8 @@ namespace KhanhSkin_BackEnd.Services.Orders
         }
 
 
-        public async Task<List<Order>> GetOrderByStatus(OrderGetRequestInputDto input)
+
+        public IQueryable<Order> GetOrderByStatus(OrderGetRequestInputDto input)
         {
             // Bắt đầu truy vấn với tất cả đơn hàng
             var query = _orderRepository.AsQueryable()
@@ -426,24 +430,32 @@ namespace KhanhSkin_BackEnd.Services.Orders
                                       || o.TrackingCode.Contains(input.FreeTextSearch));
             }
 
-            // Thực hiện phân trang
-            int skip = (input.PageIndex - 1) * input.PageSize; // Số bản ghi cần bỏ qua
-            query = query.Skip(skip).Take(input.PageSize); // Lấy số lượng bản ghi theo PageSize
-
-            // Lấy danh sách đơn hàng sau khi áp dụng các điều kiện lọc
-            var orders = await query.ToListAsync();
-
-            // Nếu không tìm thấy đơn hàng, trả về danh sách rỗng
-            if (orders == null || !orders.Any())
-            {
-                return new List<Order>();
-            }
-
-            // Ánh xạ danh sách đơn hàng sang OrderDto và trả về
-            return orders;
-            ;
+            return query; // Trả về IQueryable<Order> thay vì Task<List<Order>>
         }
 
+
+        public virtual async Task<PagedViewModel<Order>> GetPagedOrders(OrderGetRequestInputDto input)
+        {
+            // Bắt đầu từ truy vấn cơ bản, đảm bảo GetOrderByStatus trả về IQueryable<Order>
+            var query = GetOrderByStatus(input);
+
+            // Đếm tổng số bản ghi thỏa mãn điều kiện
+            var totalCount = await query.CountAsync();  // Sử dụng CountAsync với IQueryable<Order>
+
+            // Áp dụng phân trang
+            query = query.Skip((input.PageIndex - 1) * input.PageSize)  // Skip hoạt động với IQueryable<Order>
+                         .Take(input.PageSize);
+
+            // Lấy dữ liệu sau khi phân trang
+            var data = await query.ToListAsync();  // ToListAsync hoạt động với IQueryable<Order>
+
+            // Trả về kết quả dưới dạng `PagedViewModel`
+            return new PagedViewModel<Order>
+            {
+                Items = data,
+                TotalRecord = totalCount
+            };
+        }
 
 
         public async Task<List<Order>> GetOrderByUserIdAndStatus(OrderGetRequestInputDto input)
