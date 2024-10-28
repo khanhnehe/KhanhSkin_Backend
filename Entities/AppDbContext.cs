@@ -121,13 +121,16 @@ namespace KhanhSkin_BackEnd.Entities
             modelBuilder.Entity<Product>()
                 .HasMany(p => p.Reviews)
                 .WithOne(r => r.Product)
-                .HasForeignKey(r => r.ProductId);
+                .HasForeignKey(r => r.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-            // TL FK và quan hệ 1-n giữa User và Review
-            modelBuilder.Entity<User>()
-                .HasMany(u => u.Reviews)
-                .WithOne(r => r.User)
-                .HasForeignKey(r => r.UserId);
+           
+            // Thiết lập quan hệ 1-n giữa Order và Review
+            modelBuilder.Entity<Review>()
+           .HasOne(r => r.Order) // Thiết lập Order là khóa ngoại trong Review
+           .WithMany() // Không cần thêm Reviews vào Order
+           .HasForeignKey(r => r.OrderId)
+           .OnDelete(DeleteBehavior.SetNull);
 
             // TL FK và quan hệ 1-n giữa User và Favorite
             modelBuilder.Entity<User>()
@@ -307,6 +310,15 @@ namespace KhanhSkin_BackEnd.Entities
             //    .WithMany()
             //    .HasForeignKey(oi => oi.CartItemId)
             //    .OnDelete(DeleteBehavior.NoAction);
+
+
+            modelBuilder.Entity<OrderItem>()
+            .HasOne(oi => oi.Product)
+            .WithMany(p => p.OrderItems)
+            .HasForeignKey(oi => oi.ProductId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+
 
             modelBuilder.Entity<Order>()
                 .HasOne(o => o.Cart)

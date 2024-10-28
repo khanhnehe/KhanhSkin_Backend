@@ -357,7 +357,7 @@ namespace KhanhSkin_BackEnd.Services.Orders
             // Cập nhật số lượng mua của sản phẩm
             foreach (var orderItem in order.OrderItems)
             {
-                var product = await _productRepository.GetAsync(orderItem.ProductId);
+                var product = await _productRepository.GetAsync((Guid)orderItem.ProductId);
                 if (product == null)
                 {
                     throw new Exception($"Product not found.");

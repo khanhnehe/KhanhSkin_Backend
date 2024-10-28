@@ -38,8 +38,8 @@ namespace KhanhSkin_BackEnd.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"An error occurred while adding product to cart: {ex.Message}");
-                throw new ApiException($"{ex.Message}");
+                _logger.LogError(ex, $"{ex.Message}");
+                return BadRequest(new { message = ex.Message });
             }
         }
         [HttpDelete("delete/{cartItemId}")]
@@ -73,7 +73,7 @@ namespace KhanhSkin_BackEnd.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while retrieving the cart for the current user: {Message}", ex.Message);
-                throw new ApiException($"An error occurred: {ex.Message}");
+                throw new ApiException($"{ex.Message}");
             }
         }
 
@@ -88,8 +88,8 @@ namespace KhanhSkin_BackEnd.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while applying voucher to cart.");
-                return BadRequest(new { message = ex.Message });
+                _logger.LogError(ex, "");
+                throw new ApiException($"{ex.Message}");
             }
         }
 

@@ -16,7 +16,7 @@ namespace KhanhSkin_BackEnd.Services.Voucher
 
             // Ánh xạ ngược từ VoucherDto sang thực thể Voucher
             CreateMap<VoucherDto, KhanhSkin_BackEnd.Entities.Voucher>()
-                .ForMember(dest => dest.ProductVouchers, opt => opt.Ignore()); // Ignore để tránh circular references
+                .ForMember(dest => dest.ProductVouchers, opt => opt.Ignore());
 
             // Ánh xạ giữa thực thể Voucher và CreateUpdateVoucherDto
             CreateMap<KhanhSkin_BackEnd.Entities.Voucher, CreateUpdateVoucherDto>()
@@ -27,13 +27,21 @@ namespace KhanhSkin_BackEnd.Services.Voucher
                     Product = new ProductDto
                     {
                         Id = pv.Product.Id,
+                        ProductName = pv.Product.ProductName,
+                        Price = pv.Product.Price,
+                        Quantity = pv.Product.Quantity,
+                        SalePrice = pv.Product.SalePrice,
+                        SKU = pv.Product.SKU,
+                        Images = pv.Product.Images != null && pv.Product.Images.Any()
+                            ? new List<string> { pv.Product.Images.First() }
+                            : new List<string>() // Lấy phần tử đầu tiên của images nếu tồn tại
                     }
                 }).ToList()));
 
             // Ánh xạ ngược từ CreateUpdateVoucherDto sang thực thể Voucher
             CreateMap<CreateUpdateVoucherDto, KhanhSkin_BackEnd.Entities.Voucher>()
-             .ForMember(dest => dest.Id, opt => opt.Ignore()) // Ignore Id để tránh thay đổi giá trị của nó
-             .ForMember(dest => dest.ProductVouchers, opt => opt.Ignore()) // Ignore để tránh circular references
+             .ForMember(dest => dest.Id, opt => opt.Ignore())
+             .ForMember(dest => dest.ProductVouchers, opt => opt.Ignore())
              .AfterMap((src, dest) =>
              {
                  if (src.ProductVouchers != null && src.ProductVouchers.Any())
@@ -41,8 +49,8 @@ namespace KhanhSkin_BackEnd.Services.Voucher
                      dest.ProductVouchers = src.ProductVouchers.Select(pv => new ProductVoucher
                      {
                          ProductId = pv.ProductId,
-                         VoucherId = dest.Id, // VoucherId là Id của Voucher vừa tạo
-                         Id = Guid.NewGuid() // Tạo mới GUID cho ProductVoucher
+                         VoucherId = dest.Id,
+                         Id = Guid.NewGuid()
                      }).ToList();
                  }
              });
@@ -51,12 +59,18 @@ namespace KhanhSkin_BackEnd.Services.Voucher
             CreateMap<ProductVoucher, ProductVoucherDto>()
                 .ForMember(dest => dest.ProductId, opt => opt.MapFrom(src => src.ProductId))
                 .ForMember(dest => dest.VoucherId, opt => opt.MapFrom(src => src.VoucherId))
-                .ForMember(dest => dest.Product, opt => opt.MapFrom(src => src.Product));
-
-            // Ánh xạ ngược từ ProductVoucherDto sang thực thể ProductVoucher
-            CreateMap<ProductVoucherDto, ProductVoucher>()
-                .ForMember(dest => dest.Id, opt => opt.Ignore()) // Ignore Id khi nhận dữ liệu từ client
-                .ForMember(dest => dest.VoucherId, opt => opt.Ignore()); // Ignore VoucherId khi nhận dữ liệu từ client
+                .ForMember(dest => dest.Product, opt => opt.MapFrom(src => new ProductDto
+                {
+                    Id = src.Product.Id,
+                    ProductName = src.Product.ProductName,
+                    Price = src.Product.Price,
+                    Quantity = src.Product.Quantity,
+                    SalePrice = src.Product.SalePrice,
+                    SKU = src.Product.SKU,
+                    Images = src.Product.Images != null && src.Product.Images.Any()
+                        ? new List<string> { src.Product.Images.First() }
+                        : new List<string>()
+                }));
 
             // Ánh xạ giữa thực thể ProductVoucher và CreateProductVoucherDto
             CreateMap<ProductVoucher, CreateProductVoucherDto>()
@@ -64,11 +78,19 @@ namespace KhanhSkin_BackEnd.Services.Voucher
 
             // Ánh xạ ngược từ CreateProductVoucherDto sang thực thể ProductVoucher
             CreateMap<CreateProductVoucherDto, ProductVoucher>()
-                .ForMember(dest => dest.Id, opt => opt.Ignore()) // Ignore Id khi nhận dữ liệu từ client
-                .ForMember(dest => dest.VoucherId, opt => opt.Ignore()); // Ignore VoucherId khi nhận dữ liệu từ client
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.VoucherId, opt => opt.Ignore());
 
             // Ánh xạ giữa thực thể Product và ProductDto
-            CreateMap<Product, ProductDto>();
+            CreateMap<Product, ProductDto>()
+                .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.ProductName))
+                .ForMember(dest => dest.Price, opt => opt.MapFrom(src => src.Price))
+                .ForMember(dest => dest.Quantity, opt => opt.MapFrom(src => src.Quantity))
+                .ForMember(dest => dest.SalePrice, opt => opt.MapFrom(src => src.SalePrice))
+                .ForMember(dest => dest.SKU, opt => opt.MapFrom(src => src.SKU))
+                .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.Images != null && src.Images.Any()
+                    ? new List<string> { src.Images.First() }
+                    : new List<string>()));
         }
     }
 }

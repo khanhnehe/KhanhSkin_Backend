@@ -56,6 +56,17 @@ public class VoucherService : BaseService<KhanhSkin_BackEnd.Entities.Voucher, Vo
             throw new ApiException("Giá trị phải nhỏ hơn 70 cho loại giảm giá theo phần trăm.");
         }
 
+        if (input.DiscountType == DiscountType.Percentage && input.DiscountValue <= 5)
+        {
+            throw new ApiException("Giá trị phải lớn hơn 5%  cho loại giảm giá theo phần trăm.");
+        }
+
+        if (input.StartTime > input.EndTime)
+        {
+            throw new ApiException("Thời gian bắt đầu không được lớn hơn thời gian kết thúc.");
+        }
+
+
         // Kiểm tra loại voucher và danh sách sản phẩm áp dụng
         if (input.VoucherType == VoucherType.Specific)
         {
@@ -120,6 +131,11 @@ public class VoucherService : BaseService<KhanhSkin_BackEnd.Entities.Voucher, Vo
             {
                 throw new ApiException("Giá trị giảm giá phải nhỏ hơn 70 cho loại giảm giá theo phần trăm.");
             }
+            if (input.StartTime > input.EndTime)
+            {
+                throw new ApiException("Thời gian bắt đầu không được lớn hơn thời gian kết thúc.");
+            }
+
 
             // Kiểm tra loại voucher và danh sách sản phẩm áp dụng
             if (input.VoucherType == VoucherType.Specific)
@@ -217,6 +233,28 @@ public class VoucherService : BaseService<KhanhSkin_BackEnd.Entities.Voucher, Vo
             var vouchers = await _voucherRepository.AsQueryable()
                 .Include(v => v.ProductVouchers)
                 .ThenInclude(pv => pv.Product)
+                .ToListAsync();
+
+            return vouchers.Select(v => _mapper.Map<VoucherDto>(v)).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving all vouchers");
+            throw;
+        }
+    }
+
+
+    public async Task<List<VoucherDto>> GetVoucher()
+    {
+        try
+        {
+            var currentDate = DateTime.Now;
+
+            var vouchers = await _voucherRepository.AsQueryable()
+                .Include(v => v.ProductVouchers)
+                .ThenInclude(pv => pv.Product)
+                .Where(v => v.EndTime > currentDate && v.TotalUses >= 1 && v.IsActive)
                 .ToListAsync();
 
             return vouchers.Select(v => _mapper.Map<VoucherDto>(v)).ToList();

@@ -120,6 +120,26 @@ namespace KhanhSkin_BackEnd.Controllers
                 throw new ApiException($"Có lỗi xảy ra: {ex.Message}");
             }
         }
+
+        [HttpGet("get-active-vouchers")]
+        public async Task<IActionResult> GetVoucher()
+        {
+            try
+            {
+                var activeVouchers = await _voucherService.GetVoucher();
+                return Ok(activeVouchers);
+            }
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, $"Failed to retrieve active vouchers: {ex.Message}");
+                throw new ApiException(ex.Message, ex.StatusCode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"An unexpected error occurred while fetching active vouchers: {ex.Message}");
+                throw new ApiException($"Có lỗi xảy ra: {ex.Message}");
+            }
+        }
     }
 }
 

@@ -14,6 +14,7 @@ namespace KhanhSkin_BackEnd.Dtos.Voucher
         public DiscountType DiscountType { get; set; }
         public decimal MinimumOrderValue { get; set; }
         public DateTime EndTime { get; set; }
+        public DateTime StartTime { get; set; }
         public decimal DiscountValue { get; set; }
 
         public int TotalUses { get; set; }

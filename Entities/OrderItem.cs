@@ -1,32 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using KhanhSkin_BackEnd.Entities;
 
-namespace KhanhSkin_BackEnd.Entities
+public class OrderItem : BaseEntity
 {
-    public class OrderItem : BaseEntity
-    {
-        public Guid? CartItemId { get; set; }
+    public Guid? CartItemId { get; set; }
 
-        public Guid ProductId { get; set; } // Giữ lại ProductId để sử dụng trong các thao tác sau này
+    public Guid? ProductId { get; set; } // Giữ lại ProductId để sử dụng trong các thao tác sau này
 
-        public Guid? VariantId { get; set; } // Giữ lại VariantId (nếu có) để sử dụng khi cập nhật số lượng
+    public Product Product { get; set; } // Thêm thuộc tính Product để liên kết với thực thể Product
 
-        public string ProductName { get; set; } // Lưu trữ tên sản phẩm
+    public Guid? VariantId { get; set; } // Giữ lại VariantId (nếu có) để sử dụng khi cập nhật số lượng
 
-        public string? NameVariant { get; set; } // Lưu trữ tên biến thể (nếu có)
+    public string ProductName { get; set; } // Lưu trữ tên sản phẩm
 
-        public decimal ProductPrice { get; set; } // Lưu trữ giá sản phẩm
+    public string? NameVariant { get; set; } // Lưu trữ tên biến thể (nếu có)
 
-        public decimal? ProductSalePrice { get; set; } // Lưu trữ giá bán của sản phẩm (nếu có)
+    public decimal ProductPrice { get; set; } // Lưu trữ giá sản phẩm
 
-        public IList<string> Images { get; set; } = new List<string>(); // Lưu trữ hình ảnh sản phẩm
+    public decimal? ProductSalePrice { get; set; } // Lưu trữ giá bán của sản phẩm (nếu có)
 
-        public int Amount { get; set; } = 1; // Lưu trữ số lượng sản phẩm
+    public IList<string> Images { get; set; } = new List<string>(); // Lưu trữ hình ảnh sản phẩm
 
-        public decimal ItemsPrice { get; set; } // Lưu trữ tổng giá trị của OrderItem
+    public int Amount { get; set; } = 1; // Lưu trữ số lượng sản phẩm
 
-        public Guid? OrderId { get; set; }
-        public Order Order { get; set; }
-    }
+    public decimal ItemsPrice { get; set; } // Lưu trữ tổng giá trị của OrderItem
+
+    public Guid? OrderId { get; set; }
+    public Order Order { get; set; }
 }

@@ -31,6 +31,7 @@ namespace KhanhSkin_BackEnd.Entities
 
 
         public DateTime EndTime { get; set; } // Chỉ giữ ngày hết hạn
+        public DateTime StartTime { get; set; } // Chỉ giữ ngày hết hạn
 
         public int TotalUses { get; set; } // Sl voucher  tung ra
 
