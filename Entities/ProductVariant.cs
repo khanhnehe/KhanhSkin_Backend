@@ -22,6 +22,8 @@ namespace KhanhSkin_BackEnd.Entities
         public Guid ProductId { get; set; }
         public Product Product { get; set; }
         public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+        // Liên kết với Review
+        public ICollection<Review> Reviews { get; set; } = new List<Review>();
 
         public ICollection<CartItem> CartItems { get; set; } = new List<CartItem>(); // Thêm thuộc tính CartItems
 

@@ -62,5 +62,7 @@ public class Order : BaseEntity
 
     public DateTime? DeliveryDate { get; set; }
 
+    public bool HasReviewe { get; set; } = false;
+
     public Enums.OrderStatus OrderStatus { get; set; } = Enums.OrderStatus.Pending;
 }

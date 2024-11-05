@@ -47,6 +47,9 @@ namespace KhanhSkin_BackEnd.Entities
 
         public ICollection<Favorite> Favorites { get; set; } = new List<Favorite>(); // Thêm thuộc tính Favorites
 
+        public int TotalRating { get; set; } // Tổng điểm của các đánh giá đã phê duyệt
+        public int ReviewCount { get; set; } // Số lượng đánh giá đã phê duyệt
+
         public decimal AverageRating { get; set; }
 
         public IList<string> Images { get; set; } = new List<string>(); // Chuyển sang IList<string>

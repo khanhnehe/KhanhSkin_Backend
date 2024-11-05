@@ -13,5 +13,7 @@ namespace KhanhSkin_BackEnd.Services.Products
         Task<List<ProductOutstandingDto>> GetByCategory(Guid categoryId);
         Task<List<ProductOutstandingDto>> GetByProductType(Guid productTypeId);
         Task<List<ProductOutstandingDto>> GetByBrand(Guid brandId);
+        Task UpdateProductAverageRating(Guid productId);
+
     }
 }

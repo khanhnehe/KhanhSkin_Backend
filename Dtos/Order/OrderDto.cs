@@ -41,7 +41,7 @@ namespace KhanhSkin_BackEnd.Dtos.Order
         public string District { get; set; }
 
         public string Ward { get; set; }
-
+        public bool HasReviewe { get; set; } 
         public string AddressDetail { get; set; }
 
         public string ShippingMethodDes { get; set; }

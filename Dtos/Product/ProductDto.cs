@@ -17,6 +17,7 @@ namespace KhanhSkin_BackEnd.Dtos.Product
         public int? Discount { get; set; }
         public decimal? SalePrice { get; set; }
         public string SKU { get; set; }
+        public int ReviewCount { get; set; }
         public Guid BrandId { get; set; }
         public BrandDto Brand { get; set; } // Include Brand details if needed
         public int Purchases { get; set; }

@@ -6,21 +6,29 @@ namespace KhanhSkin_BackEnd.Entities
 {
     public class Review : BaseEntity
     {
-        // Các thông tin của User
-        public string UserFullName { get; set; } // Thêm FullName của User
-        public string? UserImage { get; set; } // Thêm Image của User
+        // Thông tin người dùng
+        [Required]
+        public Guid UserId { get; set; }
+        [ForeignKey("UserId")]
+        public User User { get; set; }
 
+        // Thông tin sản phẩm
         [Required]
         public Guid ProductId { get; set; }
-
         [ForeignKey("ProductId")]
-        public Product Product { get; set; } // Liên kết với Product
+        public Product Product { get; set; }
 
-        public Guid? OrderId { get; set; } // OrderId không bắt buộc
+        // Thông tin biến thể (nếu có)
+        public Guid? VariantId { get; set; } // Tham chiếu đến biến thể của sản phẩm
+        [ForeignKey("VariantId")]
+        public ProductVariant Variant { get; set; } // Liên kết với biến thể sản phẩm
 
+        // Thông tin đơn hàng (nếu có)
+        public Guid? OrderId { get; set; }
         [ForeignKey("OrderId")]
-        public Order? Order { get; set; } // Liên kết tùy chọn với Order
+        public Order? Order { get; set; }
 
+        // Thông tin đánh giá
         [Required]
         [Range(1, 5, ErrorMessage = "Đánh giá phải từ 1 đến 5 sao!")]
         public int Rating { get; set; }
@@ -31,5 +39,6 @@ namespace KhanhSkin_BackEnd.Entities
         public DateTime ReviewDate { get; set; } = DateTime.UtcNow;
 
         public bool IsApproved { get; set; } = false; // Trạng thái phê duyệt
+        public bool HasReviewed { get; set; } = false; // Đặt mặc định là false
     }
 }

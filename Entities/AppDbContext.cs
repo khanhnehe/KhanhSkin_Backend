@@ -124,13 +124,25 @@ namespace KhanhSkin_BackEnd.Entities
                 .HasForeignKey(r => r.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-           
+            modelBuilder.Entity<User>()
+                .HasMany(u => u.Reviews)
+                .WithOne(r => r.User)
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ProductVariant>()
+             .HasMany(v => v.Reviews)
+             .WithOne(r => r.Variant)
+             .HasForeignKey(r => r.VariantId)
+             .OnDelete(DeleteBehavior.NoAction);
+
+
             // Thiết lập quan hệ 1-n giữa Order và Review
             modelBuilder.Entity<Review>()
-           .HasOne(r => r.Order) // Thiết lập Order là khóa ngoại trong Review
-           .WithMany() // Không cần thêm Reviews vào Order
-           .HasForeignKey(r => r.OrderId)
-           .OnDelete(DeleteBehavior.SetNull);
+               .HasOne(r => r.Order) // Thiết lập Order là khóa ngoại trong Review
+               .WithMany() // Không cần thêm Reviews vào Order
+               .HasForeignKey(r => r.OrderId)
+               .OnDelete(DeleteBehavior.SetNull);
 
             // TL FK và quan hệ 1-n giữa User và Favorite
             modelBuilder.Entity<User>()

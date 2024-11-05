@@ -4,6 +4,7 @@ using KhanhSkin_BackEnd.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace KhanhSkin_BackEnd.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241101162838_upadeReviewEntity")]
+    partial class upadeReviewEntity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -254,18 +257,12 @@ namespace KhanhSkin_BackEnd.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
-                    b.Property<int>("ReviewCount")
-                        .HasColumnType("int");
-
                     b.Property<string>("SKU")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<decimal?>("SalePrice")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("TotalRating")
-                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -362,9 +359,6 @@ namespace KhanhSkin_BackEnd.Migrations
                     b.Property<string>("Comment")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
-
-                    b.Property<bool>("HasReviewed")
-                        .HasColumnType("bit");
 
                     b.Property<bool>("IsApproved")
                         .HasColumnType("bit");
@@ -564,9 +558,6 @@ namespace KhanhSkin_BackEnd.Migrations
 
                     b.Property<decimal>("FinalPrice")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<bool>("HasReviewe")
-                        .HasColumnType("bit");
 
                     b.Property<string>("Note")
                         .HasColumnType("nvarchar(max)");
