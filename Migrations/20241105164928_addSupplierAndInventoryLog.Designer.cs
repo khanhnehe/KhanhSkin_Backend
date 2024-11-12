@@ -4,6 +4,7 @@ using KhanhSkin_BackEnd.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace KhanhSkin_BackEnd.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241105164928_addSupplierAndInventoryLog")]
+    partial class addSupplierAndInventoryLog
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -221,14 +224,7 @@ namespace KhanhSkin_BackEnd.Migrations
                     b.Property<int>("ActionType")
                         .HasColumnType("int");
 
-                    b.Property<string>("CodeInventory")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<decimal?>("CostPrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("ItemPrice")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Note")
@@ -238,14 +234,12 @@ namespace KhanhSkin_BackEnd.Migrations
                     b.Property<Guid?>("ProductId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("ProductImage")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("ProductName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ProductSKU")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid?>("ProductVariantId")
@@ -258,24 +252,23 @@ namespace KhanhSkin_BackEnd.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("SupplierName")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal?>("TotalPrice")
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("TransactionDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("VariantImage")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("VariantName")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("VariantSKU")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("SupplierId");
 
                     b.ToTable("InventoryLogs");
                 });
@@ -893,6 +886,13 @@ namespace KhanhSkin_BackEnd.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("KhanhSkin_BackEnd.Entities.InventoryLog", b =>
+                {
+                    b.HasOne("KhanhSkin_BackEnd.Entities.Supplier", null)
+                        .WithMany("InventoryLogs")
+                        .HasForeignKey("SupplierId");
+                });
+
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Product", b =>
                 {
                     b.HasOne("KhanhSkin_BackEnd.Entities.Brand", "Brand")
@@ -1134,6 +1134,11 @@ namespace KhanhSkin_BackEnd.Migrations
                     b.Navigation("OrderItems");
 
                     b.Navigation("Reviews");
+                });
+
+            modelBuilder.Entity("KhanhSkin_BackEnd.Entities.Supplier", b =>
+                {
+                    b.Navigation("InventoryLogs");
                 });
 
             modelBuilder.Entity("KhanhSkin_BackEnd.Entities.User", b =>

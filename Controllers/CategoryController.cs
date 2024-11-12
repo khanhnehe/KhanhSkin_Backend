@@ -86,7 +86,6 @@ namespace KhanhSkin_BackEnd.Controllers
         {
             try
             {
-                // Ensure the input DTO has the correct categoryId, especially if the DTO includes the ID as a field
                 input.Id = categoryId;
 
                 var updatedCategory = await _categoryService.Update(categoryId, input);

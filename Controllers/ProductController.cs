@@ -261,5 +261,27 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+
+
+        [HttpPost("import-inventory")]
+        public async Task<IActionResult> ImportInventory([FromBody] ProductInventoryImportDto input)
+        {
+            try
+            {
+                await _productService.ImportProductInventoryAsync(input);
+                return Ok(new ApiResponse("Nhập hàng thành công."));
+            }
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, $"Failed to import inventory: {ex.Message}");
+                throw new ApiException(ex.Message, ex.StatusCode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"An error occurred while importing inventory: {ex.Message}");
+                throw new ApiException($" {ex.Message}");
+            }
+        }
+
     }
 }

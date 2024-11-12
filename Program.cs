@@ -29,6 +29,9 @@ using Microsoft.Extensions.Configuration;
 using CloudinaryDotNet;
 using KhanhSkin_BackEnd.Services;
 using KhanhSkin_BackEnd.Services.Reviews;
+using KhanhSkin_BackEnd.Services.Suppliers;
+using KhanhSkin_BackEnd.Services.InventoryLog;
+using KhanhSkin_BackEnd.Services.InventoryLogs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -71,6 +74,8 @@ builder.Services.AddAutoMapper(
     typeof(VoucherAutoMapperProfile),
     typeof(AddressMapperProfile),
     typeof(OrderMapperProfile),
+    typeof(SupplierAutoMapperProfile),
+    typeof(InventoryLogAutoMapper),
     typeof(ReviewAutoMapperProfile)
 
 );
@@ -88,6 +93,8 @@ builder.Services.AddScoped<IRepository<Cart>, Repository<Cart>>();
 builder.Services.AddScoped<IRepository<CartItem>, Repository<CartItem>>();
 builder.Services.AddScoped<IRepository<Order>, Repository<Order>>();
 builder.Services.AddScoped<IRepository<Review>, Repository<Review>>();
+builder.Services.AddScoped<IRepository<Supplier>, Repository<Supplier>>();
+builder.Services.AddScoped<IRepository<InventoryLog>, Repository<InventoryLog>>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<BrandService>();
 builder.Services.AddScoped<ProductTypeService>();
@@ -99,6 +106,8 @@ builder.Services.AddScoped<VoucherService>();
 builder.Services.AddScoped<AddressService>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<ReviewService>();
+builder.Services.AddScoped<SupplierService>();
+builder.Services.AddScoped<InventoryLogService>();
 builder.Services.AddScoped<CloudinaryService>();
 
 

@@ -30,6 +30,7 @@ namespace KhanhSkin_BackEnd.Services.Orders
         private readonly IRepository<ProductVariant> _productVariantRepository;
         private readonly IRepository<KhanhSkin_BackEnd.Entities.Voucher> _voucherRepository;
         private readonly IRepository<UserVoucher> _userVoucherRepository;
+        private readonly IRepository<KhanhSkin_BackEnd.Entities.InventoryLog> _inventoryLogRepository;
         private readonly IRepository<KhanhSkin_BackEnd.Entities.Address> _addressRepository;
         private readonly IMapper _mapper;
         private readonly ILogger<OrderService> _logger;
@@ -39,6 +40,7 @@ namespace KhanhSkin_BackEnd.Services.Orders
            IConfiguration config,
            IRepository<Order> orderRepository,
            IRepository<OrderItem> orderItemRepository,
+           IRepository<KhanhSkin_BackEnd.Entities.InventoryLog> inventoryLogRepository,
            IRepository<ProductVariant> productVariantRepository,
            IRepository<Product> productRepository,
            IRepository<Cart> cartRepository,
@@ -53,6 +55,7 @@ namespace KhanhSkin_BackEnd.Services.Orders
             _config = config;
             _orderRepository = orderRepository;
             _orderItemRepository = orderItemRepository;
+            _inventoryLogRepository = inventoryLogRepository;
             _productRepository = productRepository;
             _cartRepository = cartRepository;
             _productVariantRepository = productVariantRepository;
@@ -183,6 +186,10 @@ namespace KhanhSkin_BackEnd.Services.Orders
                 }
 
                 await _productRepository.UpdateAsync(product);
+
+                // Tạo InventoryLog từ cartItem thay vì orderItem
+                await LogInventoryFromCartItem(cartItem, Enums.ActionType.Export, "Đặt hàng");
+
             }
 
             order.TrackingCode = CreateTrackingCode();
@@ -205,47 +212,6 @@ namespace KhanhSkin_BackEnd.Services.Orders
         {
             return $"ORD-{Guid.NewGuid().ToString().ToUpper().Substring(0, 8)}";
         }
-
-
-
-        public async Task<List<OrderDto>> GetOrderByUserId()
-        {
-            try
-            {
-                // Retrieve the current user's ID
-                var userId = _currentUser.Id;
-                if (userId == null)
-                {
-                    throw new Exception("User not authenticated");
-                }
-
-                // Find all orders for the current user
-                var orders = await _orderRepository
-                    .AsQueryable()
-                    .Include(c => c.OrderItems)
-                    //.Include(c => c.Address)
-                    .Include(o => o.User)
-                    .Where(c => c.UserId == userId.Value) // Find all orders for the user
-                    .ToListAsync();
-
-                // Nếu không có đơn hàng nào, trả về danh sách rỗng
-                if (orders == null || !orders.Any())
-                {
-                    return new List<OrderDto>();
-                }
-
-                // Map the list of orders to a list of OrderDto
-                var orderDtos = _mapper.Map<List<OrderDto>>(orders);
-                return orderDtos;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while retrieving the orders for the current user.");
-                throw new Exception($"{ex.Message}");
-            }
-        }
-
-
 
 
         // Phương thức thay đổi trạng thái đơn hàng
@@ -312,7 +278,6 @@ namespace KhanhSkin_BackEnd.Services.Orders
                 if (product == null)
                 {
                     _logger.LogWarning($"Không tìm thấy sản phẩm với productId {orderItem.ProductId}. Không thể cập nhật lại số lượng.");
-                    // Tiếp tục với sản phẩm khác, không cập nhật số lượng nếu không tìm thấy sản phẩm
                     continue;
                 }
 
@@ -321,24 +286,22 @@ namespace KhanhSkin_BackEnd.Services.Orders
                 {
                     var variant = product.Variants.FirstOrDefault(v => v.Id == orderItem.VariantId.Value);
 
-                    // Trường hợp biến thể đã bị xóa
                     if (variant == null)
                     {
                         _logger.LogWarning($"Không tìm thấy biến thể cho sản phẩm {product.ProductName} với variantId {orderItem.VariantId.Value}. Không thể cập nhật lại số lượng biến thể.");
-                        // Tiếp tục với các biến thể/sản phẩm khác, không cập nhật số lượng nếu không tìm thấy variant
                         continue;
                     }
 
-                    // Cập nhật lại số lượng cho variant
                     variant.QuantityVariant += orderItem.Amount;
                     _logger.LogInformation("Cập nhật lại số lượng biến thể cho variantId: {VariantId}", orderItem.VariantId.Value);
                 }
 
-                // Cập nhật lại số lượng của sản phẩm (chỉ khi sản phẩm tồn tại)
                 product.Quantity += orderItem.Amount;
                 _logger.LogInformation("Cập nhật lại số lượng sản phẩm cho productId: {ProductId}", product.Id);
 
                 await _productRepository.UpdateAsync(product);
+                // Tạo InventoryLog từ orderItem sau khi hoàn tác số lượng
+                await LogInventoryOrderItem(orderItem, Enums.ActionType.Import, "Hủy đơn");
             }
         }
 
@@ -368,6 +331,44 @@ namespace KhanhSkin_BackEnd.Services.Orders
             }
         }
 
+        public async Task<List<OrderDto>> GetOrderByUserId()
+        {
+            try
+            {
+                // Retrieve the current user's ID
+                var userId = _currentUser.Id;
+                if (userId == null)
+                {
+                    throw new Exception("User not authenticated");
+                }
+
+                // Find all orders for the current user
+                var orders = await _orderRepository
+                    .AsQueryable()
+                    .Include(c => c.OrderItems)
+                    //.Include(c => c.Address)
+                    .Include(o => o.User)
+                    .Where(c => c.UserId == userId.Value) // Find all orders for the user
+                    .ToListAsync();
+
+                // Nếu không có đơn hàng nào, trả về danh sách rỗng
+                if (orders == null || !orders.Any())
+                {
+                    return new List<OrderDto>();
+                }
+
+                // Map the list of orders to a list of OrderDto
+                var orderDtos = _mapper.Map<List<OrderDto>>(orders);
+                return orderDtos;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while retrieving the orders for the current user.");
+                throw new Exception($"{ex.Message}");
+            }
+        }
+
+     
         public async Task<List<OrderDto>> GetAllOrders()
         {
             var allOrders = await _orderRepository.AsQueryable()
@@ -390,7 +391,6 @@ namespace KhanhSkin_BackEnd.Services.Orders
 
             return orderDtos;
         }
-
 
 
         public IQueryable<Order> GetOrderByStatus(OrderGetRequestInputDto input)
@@ -521,6 +521,56 @@ namespace KhanhSkin_BackEnd.Services.Orders
                 _logger.LogError(ex, "An error occurred while retrieving orders for the current user and status.");
                 throw new Exception($"{ex.Message}");
             }
+        }
+
+        //log ra lịch sử xuất kho với cartItem
+
+        private string GenerateCodeInventory()
+        {
+            // Tạo chuỗi với tiền tố "ORD-", sau đó lấy 4 ký tự ngẫu nhiên từ Guid và ghép vào phần thời gian ngắn gọn
+            string datePart = DateTime.UtcNow.ToString("MMdd");
+            string randomPart = Guid.NewGuid().ToString("N").Substring(0, 4).ToUpper();
+
+            // Kết hợp các phần lại thành mã ngắn gọn
+            return $"NH-{datePart}{randomPart}";
+        }
+
+        private async Task LogInventoryFromCartItem(CartItem cartItem, Enums.ActionType actionType, string note = "")
+        {
+
+             var inventoryLog = new KhanhSkin_BackEnd.Entities.InventoryLog
+            {
+                ProductId = cartItem.ProductId,
+                ProductName = cartItem.Product.ProductName,
+                ProductSKU = cartItem.Product.SKU,
+                ProductVariantId = cartItem.VariantId,
+                VariantName = cartItem.Variant?.NameVariant,
+                QuantityChange = actionType == Enums.ActionType.Export ? -cartItem.Amount : cartItem.Amount,
+                TransactionDate = DateTime.Now,
+                ActionType = actionType,
+                 CodeInventory = GenerateCodeInventory(),
+                 Note = note
+            };
+
+            await _inventoryLogRepository.CreateAsync(inventoryLog);
+        }
+
+        private async Task LogInventoryOrderItem(OrderItem orderItem, Enums.ActionType actionType, string note = "")
+        {
+            var inventoryLog = new KhanhSkin_BackEnd.Entities.InventoryLog
+            {
+                ProductId = orderItem.ProductId,
+                ProductName = orderItem.ProductName,
+                ProductVariantId = orderItem.VariantId,
+                VariantName = orderItem.NameVariant,
+                QuantityChange = actionType == Enums.ActionType.Import ? orderItem.Amount : -orderItem.Amount,
+                TransactionDate = DateTime.Now,
+                ActionType = actionType,
+                CodeInventory = GenerateCodeInventory(),
+                Note = note
+            };
+
+            await _inventoryLogRepository.CreateAsync(inventoryLog);
         }
 
     }

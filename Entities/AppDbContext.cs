@@ -21,6 +21,8 @@ namespace KhanhSkin_BackEnd.Entities
         public DbSet<Address> Addresses { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
+        public DbSet<Supplier> Suppliers { get; set; }
+        public DbSet<InventoryLog> InventoryLogs { get; set; }
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
@@ -108,7 +110,17 @@ namespace KhanhSkin_BackEnd.Entities
                 .Property(oi => oi.ProductSalePrice)
                 .HasColumnType("decimal(18,2)");
 
-           
+            modelBuilder.Entity<InventoryLog>()
+                   .Property(il => il.CostPrice)
+                   .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<InventoryLog>()
+                .Property(il => il.ItemPrice)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<InventoryLog>()
+                .Property(il => il.TotalPrice)
+                .HasColumnType("decimal(18,2)");
 
             // TL FK và quan hệ 1-n giữa Product và ProductVariant
             modelBuilder.Entity<Product>()
@@ -336,7 +348,7 @@ namespace KhanhSkin_BackEnd.Entities
                 .HasOne(o => o.Cart)
                 .WithMany()
                 .HasForeignKey(o => o.CartId)
-                .OnDelete(DeleteBehavior.NoAction); 
+                .OnDelete(DeleteBehavior.NoAction);
 
 
         }

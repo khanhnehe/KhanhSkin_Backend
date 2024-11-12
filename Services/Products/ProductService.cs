@@ -22,6 +22,7 @@ using KhanhSkin_BackEnd.Dtos.Cart;
 using KhanhSkin_BackEnd.Services.Carts;
 using KhanhSkin_BackEnd.Share.Dtos;
 using KhanhSkin_BackEnd.Dtos.Review;
+using KhanhSkin_BackEnd.Consts;
 
 
 namespace KhanhSkin_BackEnd.Services.Products
@@ -30,6 +31,8 @@ namespace KhanhSkin_BackEnd.Services.Products
     {
         private readonly IConfiguration _config;
         private readonly IRepository<Product> _productRepository;
+        private readonly IRepository<KhanhSkin_BackEnd.Entities.InventoryLog> _inventoryLogRepository;
+        private readonly IRepository<Supplier> _supplierRepository;
         private readonly IRepository<Category> _categoryRepository;
         private readonly IRepository<ProductType> _productTypeRepository;
         private readonly IRepository<Brand> _brandRepository;
@@ -40,14 +43,17 @@ namespace KhanhSkin_BackEnd.Services.Products
         private readonly CloudinaryService _cloudinaryService;
         private readonly CartService _cartService;
 
+
         public ProductService(
             IConfiguration config,
             IRepository<Product> repository,
             IRepository<Category> categoryRepository,
+            IRepository<Supplier> supplierRepository,
             IRepository<ProductType> productTypeRepository,
             IRepository<Brand> brandRepository,
             IRepository<ProductVariant> productVariantRepository,
             IRepository<CartItem> cartItemRepository,
+            IRepository<KhanhSkin_BackEnd.Entities.InventoryLog> inventoryLogRepository,
             IMapper mapper,
             ILogger<ProductService> logger,
             CloudinaryService cloudinaryService,
@@ -57,6 +63,8 @@ namespace KhanhSkin_BackEnd.Services.Products
         {
             _config = config;
             _productRepository = repository;
+            _inventoryLogRepository = inventoryLogRepository;
+            _supplierRepository = supplierRepository;
             _categoryRepository = categoryRepository;
             _productTypeRepository = productTypeRepository;
             _brandRepository = brandRepository;
@@ -110,37 +118,7 @@ namespace KhanhSkin_BackEnd.Services.Products
 
 
 
-        //public async Task UpdateProductAverageRating(Guid productId)
-        //{
-        //    // Tìm sản phẩm và các đánh giá đã được phê duyệt
-        //    var product = await _productRepository.AsQueryable()
-        //        .Include(p => p.Reviews)
-        //        .FirstOrDefaultAsync(p => p.Id == productId);
-
-        //    if (product == null)
-        //    {
-        //        throw new KeyNotFoundException("Product not found.");
-        //    }
-
-        //    // Lọc các đánh giá đã được phê duyệt
-        //    var approvedReviews = product.Reviews.Where(r => r.IsApproved).ToList();
-
-        //    // Tính toán TotalRating và ReviewCount
-        //    product.TotalRating = approvedReviews.Sum(r => r.Rating);
-        //    product.ReviewCount = approvedReviews.Count;
-
-        //    // Tính toán AverageRating chỉ khi có ít nhất một đánh giá đã phê duyệt
-        //    product.AverageRating = product.ReviewCount > 0
-        //        ? (decimal)product.TotalRating / product.ReviewCount
-        //        : 0;
-
-        //    // Cập nhật sản phẩm với TotalRating, ReviewCount và AverageRating mới
-        //    await _productRepository.UpdateAsync(product);
-        //    await _productRepository.SaveChangesAsync();
-        //}
-
-
-
+     
         public async Task<bool> CheckVariantExist(string nameVariant, string skuVariant, Guid? productId = null)
         {
             // Kt biến thể tồn tại hay ko dựa trên NameVariant hoặc SKU của biến thể
@@ -887,6 +865,102 @@ namespace KhanhSkin_BackEnd.Services.Products
 
             return _mapper.Map<List<ProductOutstandingDto>>(products);
         }
+
+
+        //nhập hàng
+
+ 
+        private string GenerateCodeInventory()
+        {
+            // Tạo chuỗi với tiền tố "ORD-", sau đó lấy 4 ký tự ngẫu nhiên từ Guid và ghép vào phần thời gian ngắn gọn
+            string datePart = DateTime.UtcNow.ToString("MMdd");
+            string randomPart = Guid.NewGuid().ToString("N").Substring(0, 4).ToUpper();
+
+            // Kết hợp các phần lại thành mã ngắn gọn
+            return $"NH-{datePart}{randomPart}";
+        }
+
+
+        public async Task ImportProductInventoryAsync(ProductInventoryImportDto input)
+        {
+            var product = await _productRepository.AsQueryable()
+                .Include(p => p.Variants)
+                .FirstOrDefaultAsync(p => p.Id == input.ProductId);
+
+            if (product == null)
+            {
+                throw new ApiException("Không tìm thấy sản phẩm.");
+            }
+
+            decimal itemPrice = input?.CostPrice ?? 0;
+            decimal totalPrice = itemPrice * input.Quantity;
+            string codeInventory = GenerateCodeInventory();
+
+            string productImage = product.Images?.FirstOrDefault(); // Lấy ảnh đầu tiên của sản phẩm nếu có
+            string variantImage = null;
+
+            if (input.ProductVariantId.HasValue)
+            {
+                var variant = product.Variants.FirstOrDefault(v => v.Id == input.ProductVariantId.Value);
+
+                if (variant == null)
+                {
+                    throw new ApiException("Không tìm thấy biến thể sản phẩm hoặc biến thể không thuộc về sản phẩm này.");
+                }
+
+                variant.QuantityVariant += input.Quantity;
+                product.Quantity = product.Variants.Sum(v => v.QuantityVariant);
+
+                await _productVariantRepository.UpdateAsync(variant);
+                await _productVariantRepository.SaveChangesAsync();
+
+                variantImage = variant.ImageUrl; // Lấy ảnh của biến thể nếu nhập cho biến thể
+            }
+            else
+            {
+                if (product.Variants != null && product.Variants.Any())
+                {
+                    throw new ApiException("Sản phẩm này có biến thể. Vui lòng chỉ định biến thể cụ thể để nhập hàng.");
+                }
+
+                product.Quantity += input.Quantity;
+            }
+
+            await _productRepository.UpdateAsync(product);
+            await _productRepository.SaveChangesAsync();
+
+            var inventoryLog = new KhanhSkin_BackEnd.Entities.InventoryLog
+            {
+                ProductId = product.Id,
+                ProductName = product.ProductName,
+                ProductSKU = product.SKU,
+                QuantityChange = input.Quantity,
+                TransactionDate = DateTime.UtcNow,
+                ActionType = Enums.ActionType.Import,
+                SupplierId = input.SupplierId,
+                SupplierName = input.SupplierId.HasValue ? (await _supplierRepository.GetAsync(input.SupplierId.Value))?.SupplierName : null,
+                CostPrice = input.CostPrice,
+                ItemPrice = itemPrice,
+                TotalPrice = totalPrice,
+                Note = input.Note,
+                CodeInventory = codeInventory,
+                ProductImage = productImage,    // URL ảnh của sản phẩm
+                VariantImage = variantImage     // URL ảnh của biến thể
+            };
+
+            if (input.ProductVariantId.HasValue)
+            {
+                var variant = product.Variants.FirstOrDefault(v => v.Id == input.ProductVariantId.Value);
+                inventoryLog.ProductVariantId = variant.Id;
+                inventoryLog.VariantName = variant.NameVariant;
+                inventoryLog.VariantSKU = variant.SKUVariant;
+            }
+
+            await _inventoryLogRepository.CreateAsync(inventoryLog);
+            await _inventoryLogRepository.SaveChangesAsync();
+        }
+
+
     }
 
 }

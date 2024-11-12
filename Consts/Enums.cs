@@ -53,6 +53,7 @@ namespace KhanhSkin_BackEnd.Consts
             EconomyDelivery 
         }
 
+
         public enum PaymentMethod
         {
             [Description("Thanh toán khi nhận hàng")]
@@ -60,6 +61,15 @@ namespace KhanhSkin_BackEnd.Consts
 
             [Description("Thanh toán VNpay")]
             Vnpay
+        }
+
+        public enum ActionType
+        {
+            [Description("Nhập")]
+            Import = 1,
+
+            [Description("Xuất")]
+            Export
         }
     }
 }
