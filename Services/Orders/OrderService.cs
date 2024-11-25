@@ -17,6 +17,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using static KhanhSkin_BackEnd.Consts.Enums;
 using System.Text.RegularExpressions;
+using KhanhSkin_BackEnd.Dtos.Report;
+using System.Globalization;
 
 namespace KhanhSkin_BackEnd.Services.Orders
 {
@@ -29,7 +31,6 @@ namespace KhanhSkin_BackEnd.Services.Orders
         private readonly IRepository<Cart> _cartRepository;
         private readonly IRepository<ProductVariant> _productVariantRepository;
         private readonly IRepository<KhanhSkin_BackEnd.Entities.Voucher> _voucherRepository;
-        private readonly IRepository<UserVoucher> _userVoucherRepository;
         private readonly IRepository<KhanhSkin_BackEnd.Entities.InventoryLog> _inventoryLogRepository;
         private readonly IRepository<KhanhSkin_BackEnd.Entities.Address> _addressRepository;
         private readonly IMapper _mapper;
@@ -46,7 +47,6 @@ namespace KhanhSkin_BackEnd.Services.Orders
            IRepository<Cart> cartRepository,
            IRepository<KhanhSkin_BackEnd.Entities.Voucher> voucherRepository,
            IRepository<KhanhSkin_BackEnd.Entities.Address> addressRepository,
-           IRepository<UserVoucher> userVoucherRepository,
            IMapper mapper,
            ILogger<OrderService> logger,
            ICurrentUser currentUser)
@@ -61,7 +61,6 @@ namespace KhanhSkin_BackEnd.Services.Orders
             _productVariantRepository = productVariantRepository;
             _voucherRepository = voucherRepository;
             _addressRepository = addressRepository;
-            _userVoucherRepository = userVoucherRepository;
             _mapper = mapper;
             _logger = logger;
             _currentUser = currentUser;
@@ -129,8 +128,21 @@ namespace KhanhSkin_BackEnd.Services.Orders
                     throw new Exception("Giá trị đơn hàng không đủ để áp dụng voucher.");
                 }
 
+                // Kiểm tra nếu Voucher còn sử dụng được
+                if (voucher.TotalUses <= 0)
+                {
+                    throw new Exception("Voucher này đã được sử dụng hết.");
+                }
+
+                // Trừ TotalUses đi 1
+                voucher.TotalUses--;
+
+                // Cập nhật lại voucher trong cơ sở dữ liệu
+                await _voucherRepository.UpdateAsync(voucher);
+
                 order.VoucherId = voucher.Id;
             }
+
 
             var orderItems = new List<OrderItem>();
 
@@ -211,6 +223,171 @@ namespace KhanhSkin_BackEnd.Services.Orders
         private string CreateTrackingCode()
         {
             return $"ORD-{Guid.NewGuid().ToString().ToUpper().Substring(0, 8)}";
+        }
+
+
+        // Thống kê doanh thu và lợi nhuận
+        public async Task<List<ReportResponseDto>> GetRevenueAndProfitReports(ReportRequestDto request)
+        {
+            // Chuẩn bị dữ liệu nếu thiếu
+            var preparedRequest = await PrepareReportRequest(request);
+
+            var data = await GetRevenueProfitDataAsync(preparedRequest);
+
+            for (int i = 1; i < data.Count; i++)
+            {
+                var current = data[i];
+                var previous = data[i - 1];
+
+                if (previous.Revenue > 0)
+                {
+                    current.GrowthRate = ((current.Revenue - previous.Revenue) / previous.Revenue) * 100;
+                }
+                else
+                {
+                    current.GrowthRate = null; // Không có dữ liệu kỳ trước
+                }
+            }
+
+            if (data.Count > 0)
+            {
+                data[0].GrowthRate = null; // Không có dữ liệu kỳ trước để so sánh
+            }
+
+            return data;
+        }
+
+        // Chuẩn bị ReportRequestDto nếu cần gán giá trị mặc định
+        private async Task<ReportRequestDto> PrepareReportRequest(ReportRequestDto request)
+        {
+            var today = DateTime.UtcNow;
+
+            // Lấy minDate và maxDate từ dữ liệu
+            var minDate = await _orderRepository.AsQueryable()
+                .OrderBy(o => o.OrderDate)
+                .Select(o => o.OrderDate)
+                .FirstOrDefaultAsync();
+
+            var maxDate = await _orderRepository.AsQueryable()
+                .OrderByDescending(o => o.OrderDate)
+                .Select(o => o.OrderDate)
+                .FirstOrDefaultAsync();
+
+            // Nếu không có dữ liệu, mặc định toàn bộ năm hiện tại
+            minDate = minDate == default ? new DateTime(today.Year, 1, 1) : minDate;
+            maxDate = maxDate == default ? new DateTime(today.Year, 12, 31, 23, 59, 59) : maxDate;
+
+            // Gán giá trị mặc định nếu cần
+            request.StartDate = request.StartDate == default ? minDate : request.StartDate;
+            request.EndDate = request.EndDate == default ? maxDate : request.EndDate;
+
+            return request;
+        }
+
+        private async Task<List<ReportResponseDto>> GetRevenueProfitDataAsync(ReportRequestDto request)
+        {
+            var query = _orderRepository.AsQueryable()
+                .Where(o => o.OrderDate >= request.StartDate &&
+                            o.OrderDate <= request.EndDate &&
+                            o.OrderStatus == OrderStatus.Completed);
+
+            var orders = await query.Include(o => o.OrderItems).ToListAsync();
+
+            var groupedData = orders
+                .GroupBy(o =>
+                {
+                    if (request.PeriodType == PeriodType.Day)
+                        return o.OrderDate.Date.ToString("yyyy-MM-dd");
+                    if (request.PeriodType == PeriodType.Week)
+                        return $"Week {ISOWeek.GetWeekOfYear(o.OrderDate)}-{o.OrderDate.Year}";
+                    if (request.PeriodType == PeriodType.Month)
+                        return $"{o.OrderDate:yyyy-MM}";
+                    if (request.PeriodType == PeriodType.Year)
+                        return o.OrderDate.Year.ToString();
+
+                    return o.OrderDate.Date.ToString("yyyy-MM-dd"); // Mặc định là ngày
+                })
+                .Select(group => new ReportResponseDto
+                {
+                    TimePeriod = group.Key, // Key của GroupBy là chuỗi
+                    Revenue = group.Sum(o => o.FinalPrice - o.ShippingPrice),
+                    GrossProfit = group.Sum(o => GrossProfit(o))
+                })
+                .ToList();
+
+            return groupedData;
+        }
+
+        private decimal GrossProfit(Order order)
+        {
+            decimal totalProfit = 0;
+
+            foreach (var item in order.OrderItems)
+            {
+        // Số lượng cần bán
+                int remainingQuantity = item.Amount;
+
+                // Lấy dữ liệu nhập kho sắp xếp theo ngày
+                var inventoryLogs = _inventoryLogRepository.AsQueryable()
+                    .Where(log => log.ProductId == item.ProductId && log.ProductVariantId == item.VariantId)
+                    .OrderBy(log => log.TransactionDate)
+                    .ToList();
+
+                decimal totalCost = 0;
+
+                foreach (var log in inventoryLogs)
+                {
+                    // Nếu số lượng còn lại lớn hơn số lượng nhập trong log hiện tại
+                    if (remainingQuantity > log.QuantityChange)
+                    {
+                        totalCost += log.CostPrice.GetValueOrDefault() * log.QuantityChange;
+                        remainingQuantity -= log.QuantityChange; // Trừ số lượng đã bán khỏi lô hiện tại
+                    }
+                    else
+                    {
+                        // Chỉ sử dụng số lượng còn lại
+                        totalCost += log.CostPrice.GetValueOrDefault() * remainingQuantity;
+                        break; // Đã đủ số lượng bán ra
+                    }
+        }
+
+        // Tổng giá vốn đã tính xong => Tính lợi nhuận cho từng sản phẩm
+        var itemProfit = item.ItemsPrice - totalCost;
+        totalProfit += itemProfit;
+    }
+
+    return totalProfit;
+}
+
+
+        public async Task<List<TopProductReportDto>> GetTopSellingProducts(DateTime startDate, DateTime endDate, int topCount = 10)
+        {
+            var orders = await _orderRepository.AsQueryable()
+                .Include(o => o.OrderItems)
+                .Where(o => o.OrderDate >= startDate &&
+                            o.OrderDate <= endDate &&
+                            o.OrderStatus == OrderStatus.Completed)
+                .ToListAsync();
+
+            var topProducts = orders.SelectMany(o => o.OrderItems)
+                .GroupBy(oi => oi.ProductId)
+                .Where(g => g.Key != null) // Loại bỏ ProductId null
+                .Select(group => new
+                {
+                    ProductId = group.Key.Value,
+                    TotalSold = group.Sum(oi => oi.Amount),
+                    TotalRevenue = group.Sum(oi => oi.ItemsPrice)
+                })
+                .OrderByDescending(p => p.TotalSold)
+                .Take(topCount)
+                .ToList();
+
+            return topProducts.Select(p => new TopProductReportDto
+            {
+                ProductId = p.ProductId,
+                TotalSold = p.TotalSold,
+                TotalRevenue = p.TotalRevenue
+            }).ToList();
         }
 
 
@@ -330,6 +507,17 @@ namespace KhanhSkin_BackEnd.Services.Orders
                 await _productRepository.UpdateAsync(product);
             }
         }
+
+
+
+        /// <summary>
+        /// ////////
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        /// 
+
+
 
         public async Task<List<OrderDto>> GetOrderByUserId()
         {
@@ -563,7 +751,7 @@ namespace KhanhSkin_BackEnd.Services.Orders
                 ProductName = orderItem.ProductName,
                 ProductVariantId = orderItem.VariantId,
                 VariantName = orderItem.NameVariant,
-                QuantityChange = actionType == Enums.ActionType.Import ? orderItem.Amount : -orderItem.Amount,
+                QuantityChange = actionType == Enums.ActionType.CancelProduct ? orderItem.Amount : -orderItem.Amount,
                 TransactionDate = DateTime.Now,
                 ActionType = actionType,
                 CodeInventory = GenerateCodeInventory(),
@@ -572,6 +760,12 @@ namespace KhanhSkin_BackEnd.Services.Orders
 
             await _inventoryLogRepository.CreateAsync(inventoryLog);
         }
+
+
+        //////
+        ///
+        // Thống kê doanh thu và lợi nhuận
+       
 
     }
 }

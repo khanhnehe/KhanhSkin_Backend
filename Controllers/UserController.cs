@@ -106,7 +106,7 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         [HttpPut("update-user/{id}")]
         public async Task<IActionResult> UpdateUser(Guid id, [FromForm] CreateUpdateUserDto input)
         {
@@ -125,9 +125,8 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
-
+        [Authorize(Roles = "Admin")]
         [HttpDelete("delete-user/{id}")]
-        [Authorize] 
         public async Task<IActionResult> DeleteUser(Guid id)
         {
             try
@@ -167,7 +166,7 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
-        [Authorize]
+        [Authorize(Roles = "Admin,Staff")]
         [HttpGet("filter-users")]
         public async Task<IActionResult> CreateFilteredQuery([FromQuery] UserGetRequestInputDto input)
         {

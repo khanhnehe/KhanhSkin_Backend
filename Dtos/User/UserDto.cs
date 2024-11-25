@@ -12,9 +12,8 @@ namespace KhanhSkin_BackEnd.Dtos.User
         public string? Image { get; set; }
         public Enums.Role Role { get; set; }
         public ICollection<Favorite> Favorites { get; set; } = new List<Favorite>();
-        public ICollection<UserVoucher> UserVouchers { get; set; } = new List<UserVoucher>();
         public ICollection<KhanhSkin_BackEnd.Entities.Address> Addresses { get; set; } = new List<KhanhSkin_BackEnd.Entities.Address>();
-
+        public bool IsActive { get; set; }
 
     }
 }

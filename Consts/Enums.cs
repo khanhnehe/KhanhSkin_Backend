@@ -7,7 +7,8 @@ namespace KhanhSkin_BackEnd.Consts
         public enum Role
         {
             User = 1,
-            Admin = 2
+            Admin = 2,
+            Staff = 3
         }
 
         public enum DiscountType
@@ -69,7 +70,18 @@ namespace KhanhSkin_BackEnd.Consts
             Import = 1,
 
             [Description("Xuất")]
-            Export
+            Export,
+
+            CancelProduct   // Hủy sản phẩm
+        }
+
+
+        public enum PeriodType
+        {
+            Day = 1,
+            Week,
+            Month,
+            Year
         }
     }
 }

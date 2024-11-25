@@ -5,6 +5,7 @@ using KhanhSkin_BackEnd.Dtos.Address;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 
 namespace KhanhSkin_BackEnd.Controllers
 {
@@ -21,6 +22,7 @@ namespace KhanhSkin_BackEnd.Controllers
             _logger = logger;
         }
 
+        [Authorize]
         [HttpPost("create-address")]
         public async Task<IActionResult> Create([FromBody] CreateUpdateAddressDto input)
         {
@@ -41,6 +43,7 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+        [Authorize]
         [HttpPut("update-address/{addressId}")]
         public async Task<IActionResult> Update(Guid addressId, [FromBody] CreateUpdateAddressDto input)
         {
@@ -62,6 +65,7 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+        [Authorize]
         [HttpDelete("delete-address/{addressId}")]
         public async Task<IActionResult> Delete(Guid addressId)
         {
@@ -82,6 +86,7 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+        [Authorize]
         [HttpGet("get-all-addresses")]
         public async Task<IActionResult> GetAllAddresses()
         {
@@ -102,6 +107,7 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+        [Authorize]
         [HttpGet("get-my-address")]
         public async Task<IActionResult> GetMyAddress()
         {

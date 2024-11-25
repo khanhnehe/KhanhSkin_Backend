@@ -1,6 +1,7 @@
 ﻿using AutoWrapper.Wrappers;
 using KhanhSkin_BackEnd.Dtos.Supplier;
 using KhanhSkin_BackEnd.Services.Suppliers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace KhanhSkin_BackEnd.Controllers
@@ -18,6 +19,8 @@ namespace KhanhSkin_BackEnd.Controllers
             _logger = logger;
         }
 
+
+        [Authorize(Roles = "Admin")]
         [HttpPost("create-supplier")]
         public async Task<IActionResult> CreateSupplier([FromBody] SupplierDto input)
         {
@@ -39,6 +42,7 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPut("update-supplier/{id}")]
         public async Task<IActionResult> Update(Guid id, [FromBody] SupplierDto input)
         {
@@ -59,6 +63,7 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpDelete("delete-supplier/{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
@@ -79,6 +84,8 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+
+        [Authorize(Roles = "Admin")]
         [HttpPost("get-paged-supplier")]
         public async Task<IActionResult> GetSupplierPage([FromBody] SupplierGetRequestInputDto input)
         {

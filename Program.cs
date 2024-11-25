@@ -109,10 +109,12 @@ builder.Services.AddScoped<ReviewService>();
 builder.Services.AddScoped<SupplierService>();
 builder.Services.AddScoped<InventoryLogService>();
 builder.Services.AddScoped<CloudinaryService>();
+builder.Services.AddScoped<ProductRecommenService>();
 
 
 // Đăng ký LocationService với HttpClient
 builder.Services.AddHttpClient<LocationService>();
+builder.Services.AddHttpClient<ProductRecommenService>();
 
 
 // Cấu hình CORS để cho phép kết nối từ Frontend chạy trên localhost:3000

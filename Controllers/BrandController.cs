@@ -85,8 +85,8 @@ namespace KhanhSkin_BackEnd.Controllers
         }
 
 
-        [HttpGet("get-all-brand")]
 
+        [HttpGet("get-all-brand")]
         public async Task<IActionResult> GetAll()
         {
             try

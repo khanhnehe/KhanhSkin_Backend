@@ -22,6 +22,7 @@ namespace KhanhSkin_BackEnd.Controllers
             _logger = logger;
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost("create-category")] // Add this line
         public async Task<IActionResult> Create(CategoryDto input)
         {
@@ -39,7 +40,6 @@ namespace KhanhSkin_BackEnd.Controllers
                 throw new ApiException($"Có lỗi xảy ra: {ex.Message}");
             }
         }
-      
 
         [HttpGet("get-all-category")]
         public async Task<IActionResult> GetAll()
@@ -81,6 +81,8 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+
+        [Authorize(Roles = "Admin")]
         [HttpPut("update-category/{categoryId}")] // Use the HTTP PUT method for updates, and capture the categoryId from the route
         public async Task<IActionResult> Update(Guid categoryId, [FromBody] CategoryDto input)
         {

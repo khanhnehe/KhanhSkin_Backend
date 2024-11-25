@@ -199,7 +199,12 @@ namespace KhanhSkin_BackEnd.Services.Users
 
         public async Task<List<UserDto>> GetAllUsers()
         {
-            var users = await _userRepository.GetAllListAsync();
+            // Lấy danh sách các user có IsActive = true
+            var users = await _userRepository.AsQueryable()
+                                             .Where(u => u.IsActive)
+                                             .ToListAsync();
+
+            // Chuyển đổi sang danh sách UserDto
             return _mapper.Map<List<UserDto>>(users);
         }
 
@@ -250,21 +255,18 @@ namespace KhanhSkin_BackEnd.Services.Users
                     throw new ApiException("Không tìm thấy người dùng.");
                 }
 
-                // Kiểm tra và xóa ảnh nếu người dùng có ảnh
-                if (!string.IsNullOrEmpty(user.Image))
-                {
-                    await DeleteImageAsync(user.Image); // Gọi phương thức DeleteImageAsync để xóa ảnh
-                }
+                // Chuyển trạng thái IsActive sang false thay vì xóa
+                user.IsActive = false;
 
-                // Xóa người dùng và lưu thay đổi
-                await _userRepository.DeleteByEntityAsync(user);
+                // Cập nhật thay đổi vào cơ sở dữ liệu
+                await _userRepository.UpdateAsync(user);
                 await _userRepository.SaveChangesAsync(); // Lưu các thay đổi vào cơ sở dữ liệu
 
                 return user;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting user: {UserId}", id);
+                _logger.LogError(ex, "Error deactivating user: {UserId}", id);
                 throw;
             }
         }
@@ -272,22 +274,34 @@ namespace KhanhSkin_BackEnd.Services.Users
 
 
 
+
         public async Task<string> SignIn(SignInDto input)
         {
+            // Tìm user theo email
             var user = await _userRepository.AsQueryable().FirstOrDefaultAsync(u => u.Email == input.Email);
+
             if (user == null)
             {
                 throw new ApiException("Email không tồn tại.");
             }
 
+            // Kiểm tra nếu user không hoạt động
+            if (!user.IsActive)
+            {
+                throw new ApiException("Tài khoản của bạn đã bị vô hiệu hóa.");
+            }
+
+            // Kiểm tra mật khẩu
             var result = _passwordHasher.VerifyHashedPassword(user, user.Password, input.Password);
             if (result == PasswordVerificationResult.Failed)
             {
                 throw new ApiException("Mật khẩu không đúng.");
             }
 
+            // Tạo JWT và trả về
             return GenerateJWT(user);
         }
+
 
 
 

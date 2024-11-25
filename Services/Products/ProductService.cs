@@ -41,6 +41,7 @@ namespace KhanhSkin_BackEnd.Services.Products
         private readonly IMapper _mapper;
         private readonly ILogger<ProductService> _logger;
         private readonly CloudinaryService _cloudinaryService;
+        private readonly ProductRecommenService _productRecommenService;
         private readonly CartService _cartService;
 
 
@@ -57,12 +58,14 @@ namespace KhanhSkin_BackEnd.Services.Products
             IMapper mapper,
             ILogger<ProductService> logger,
             CloudinaryService cloudinaryService,
+            ProductRecommenService productRecommenService,
             CartService cartService,
             ICurrentUser currentUser)
             : base(mapper, repository, logger, currentUser)
         {
             _config = config;
             _productRepository = repository;
+            _productRecommenService = productRecommenService;
             _inventoryLogRepository = inventoryLogRepository;
             _supplierRepository = supplierRepository;
             _categoryRepository = categoryRepository;
@@ -860,7 +863,7 @@ namespace KhanhSkin_BackEnd.Services.Products
                 .Include(p => p.Brand)
                 .Include(p => p.Categories)
                 .Include(p => p.ProductTypes)
-                                .OrderByDescending(p => p.CreatedDate)
+                .OrderByDescending(p => p.CreatedDate)
                 .ToListAsync();
 
             return _mapper.Map<List<ProductOutstandingDto>>(products);
@@ -881,83 +884,110 @@ namespace KhanhSkin_BackEnd.Services.Products
         }
 
 
-        public async Task ImportProductInventoryAsync(ProductInventoryImportDto input)
+        public async Task ImportProductInventoryAsync(List<ProductInventoryImportDto> inputs)
         {
-            var product = await _productRepository.AsQueryable()
+            foreach (var input in inputs)
+            {
+                var product = await _productRepository.AsQueryable()
+                    .Include(p => p.Variants)
+                    .FirstOrDefaultAsync(p => p.Id == input.ProductId);
+
+                if (product == null)
+                {
+                    throw new ApiException("Không tìm thấy sản phẩm.");
+                }
+
+                decimal itemPrice = input?.CostPrice ?? 0;
+                decimal totalPrice = itemPrice * input.Quantity;
+                string codeInventory = GenerateCodeInventory();
+
+                string productImage = product.Images?.FirstOrDefault(); // Lấy ảnh đầu tiên của sản phẩm nếu có
+                string variantImage = null;
+
+                if (input.ProductVariantId.HasValue)
+                {
+                    var variant = product.Variants.FirstOrDefault(v => v.Id == input.ProductVariantId.Value);
+
+                    if (variant == null)
+                    {
+                        throw new ApiException("Không tìm thấy biến thể sản phẩm hoặc biến thể không thuộc về sản phẩm này.");
+                    }
+
+                    variant.QuantityVariant += input.Quantity;
+                    product.Quantity = product.Variants.Sum(v => v.QuantityVariant);
+
+                    await _productVariantRepository.UpdateAsync(variant);
+                    await _productVariantRepository.SaveChangesAsync();
+
+                    variantImage = variant.ImageUrl; // Lấy ảnh của biến thể nếu nhập cho biến thể
+                }
+                else
+                {
+                    if (product.Variants != null && product.Variants.Any())
+                    {
+                        throw new ApiException("Sản phẩm này có biến thể. Vui lòng chỉ định biến thể cụ thể để nhập hàng.");
+                    }
+
+                    product.Quantity += input.Quantity;
+                }
+
+                await _productRepository.UpdateAsync(product);
+                await _productRepository.SaveChangesAsync();
+
+                var inventoryLog = new KhanhSkin_BackEnd.Entities.InventoryLog
+                {
+                    ProductId = product.Id,
+                    ProductName = product.ProductName,
+                    ProductSKU = product.SKU,
+                    QuantityChange = input.Quantity,
+                    TransactionDate = DateTime.UtcNow,
+                    ActionType = Enums.ActionType.Import,
+                    SupplierId = input.SupplierId,
+                    SupplierName = input.SupplierId.HasValue ? (await _supplierRepository.GetAsync(input.SupplierId.Value))?.SupplierName : null,
+                    CostPrice = input.CostPrice,
+                    ItemPrice = itemPrice,
+                    TotalPrice = totalPrice,
+                    Note = input.Note,
+                    CodeInventory = codeInventory,
+                    ProductImage = productImage,    // URL ảnh của sản phẩm
+                    VariantImage = variantImage     // URL ảnh của biến thể
+                };
+
+                if (input.ProductVariantId.HasValue)
+                {
+                    var variant = product.Variants.FirstOrDefault(v => v.Id == input.ProductVariantId.Value);
+                    inventoryLog.ProductVariantId = variant.Id;
+                    inventoryLog.VariantName = variant.NameVariant;
+                    inventoryLog.VariantSKU = variant.SKUVariant;
+                }
+
+                await _inventoryLogRepository.CreateAsync(inventoryLog);
+                await _inventoryLogRepository.SaveChangesAsync();
+            }
+        }
+
+
+
+
+        //
+        public async Task<List<ProductOutstandingDto>> RecommendProductsAsync(string productId, int topN)
+        {
+            var recommendationIds = await _productRecommenService.GetRecommendationsAsync(productId, topN);
+
+            if (recommendationIds == null || !recommendationIds.Any())
+            {
+                return new List<ProductOutstandingDto>();
+            }
+
+            var products = await _productRepository.AsQueryable()
+                .Where(p => recommendationIds.Contains(p.Id))
+                .Include(p => p.Brand)
+                .Include(p => p.Categories)
+                .Include(p => p.ProductTypes)
                 .Include(p => p.Variants)
-                .FirstOrDefaultAsync(p => p.Id == input.ProductId);
+                .ToListAsync();
 
-            if (product == null)
-            {
-                throw new ApiException("Không tìm thấy sản phẩm.");
-            }
-
-            decimal itemPrice = input?.CostPrice ?? 0;
-            decimal totalPrice = itemPrice * input.Quantity;
-            string codeInventory = GenerateCodeInventory();
-
-            string productImage = product.Images?.FirstOrDefault(); // Lấy ảnh đầu tiên của sản phẩm nếu có
-            string variantImage = null;
-
-            if (input.ProductVariantId.HasValue)
-            {
-                var variant = product.Variants.FirstOrDefault(v => v.Id == input.ProductVariantId.Value);
-
-                if (variant == null)
-                {
-                    throw new ApiException("Không tìm thấy biến thể sản phẩm hoặc biến thể không thuộc về sản phẩm này.");
-                }
-
-                variant.QuantityVariant += input.Quantity;
-                product.Quantity = product.Variants.Sum(v => v.QuantityVariant);
-
-                await _productVariantRepository.UpdateAsync(variant);
-                await _productVariantRepository.SaveChangesAsync();
-
-                variantImage = variant.ImageUrl; // Lấy ảnh của biến thể nếu nhập cho biến thể
-            }
-            else
-            {
-                if (product.Variants != null && product.Variants.Any())
-                {
-                    throw new ApiException("Sản phẩm này có biến thể. Vui lòng chỉ định biến thể cụ thể để nhập hàng.");
-                }
-
-                product.Quantity += input.Quantity;
-            }
-
-            await _productRepository.UpdateAsync(product);
-            await _productRepository.SaveChangesAsync();
-
-            var inventoryLog = new KhanhSkin_BackEnd.Entities.InventoryLog
-            {
-                ProductId = product.Id,
-                ProductName = product.ProductName,
-                ProductSKU = product.SKU,
-                QuantityChange = input.Quantity,
-                TransactionDate = DateTime.UtcNow,
-                ActionType = Enums.ActionType.Import,
-                SupplierId = input.SupplierId,
-                SupplierName = input.SupplierId.HasValue ? (await _supplierRepository.GetAsync(input.SupplierId.Value))?.SupplierName : null,
-                CostPrice = input.CostPrice,
-                ItemPrice = itemPrice,
-                TotalPrice = totalPrice,
-                Note = input.Note,
-                CodeInventory = codeInventory,
-                ProductImage = productImage,    // URL ảnh của sản phẩm
-                VariantImage = variantImage     // URL ảnh của biến thể
-            };
-
-            if (input.ProductVariantId.HasValue)
-            {
-                var variant = product.Variants.FirstOrDefault(v => v.Id == input.ProductVariantId.Value);
-                inventoryLog.ProductVariantId = variant.Id;
-                inventoryLog.VariantName = variant.NameVariant;
-                inventoryLog.VariantSKU = variant.SKUVariant;
-            }
-
-            await _inventoryLogRepository.CreateAsync(inventoryLog);
-            await _inventoryLogRepository.SaveChangesAsync();
+            return _mapper.Map<List<ProductOutstandingDto>>(products);
         }
 
 

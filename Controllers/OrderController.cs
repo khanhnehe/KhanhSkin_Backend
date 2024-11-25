@@ -1,6 +1,8 @@
 ﻿using AutoWrapper.Wrappers;
 using KhanhSkin_BackEnd.Dtos.Order;
+using KhanhSkin_BackEnd.Dtos.Report;
 using KhanhSkin_BackEnd.Services.Orders;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
@@ -21,6 +23,7 @@ namespace KhanhSkin_BackEnd.Controllers
             _logger = logger;
         }
 
+        [Authorize]
         [HttpPost("checkout")]
         public async Task<IActionResult> CheckOutOrder([FromBody] CheckoutOrderDto checkoutOrderDto)
         {
@@ -41,7 +44,7 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
-
+        [Authorize]
         [HttpGet("get-order-by-user-id")]
         public async Task<IActionResult> GetOrderByUserId()
         {
@@ -62,6 +65,7 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+        [Authorize]
         [HttpPost("change-status")]
         public async Task<IActionResult> ChangeStatusOrder([FromBody] ChangeStatus input)
         {
@@ -82,6 +86,7 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+        [Authorize]
         [HttpGet("get-all-orders")]
         public async Task<IActionResult> GetAllOrders()
         {
@@ -102,6 +107,7 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin,Staff")]
         [HttpPost("get-paged-orders")]
         public async Task<IActionResult> GetPagedOrders([FromBody] OrderGetRequestInputDto input)
         {
@@ -123,6 +129,7 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+        [Authorize]
         [HttpPost("get-orders-by-user-status")]
         public async Task<IActionResult> GetOrderByUserAndStatus([FromBody] OrderGetRequestInputDto input)
         {
@@ -139,6 +146,51 @@ namespace KhanhSkin_BackEnd.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"An error occurred while retrieving orders by status: {ex.Message}");
+                throw new ApiException($"{ex.Message}");
+            }
+        }
+
+
+
+        //
+        [Authorize(Roles = "Admin,Staff")]
+        [HttpPost("get-revenue-and-profit")]
+        public async Task<IActionResult> GetRevenueAndProfitReports([FromBody] ReportRequestDto request)
+        {
+            try
+            {
+                var reports = await _orderService.GetRevenueAndProfitReports(request);
+                return Ok(reports);
+            }
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, $"Failed to retrieve revenue and profit reports: {ex.Message}");
+                throw new ApiException(ex.Message, ex.StatusCode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"An error occurred while retrieving revenue and profit reports: {ex.Message}");
+                throw new ApiException($"{ex.Message}");
+            }
+        }
+
+        [Authorize(Roles = "Admin,Staff")]
+        [HttpGet("get-top-selling-products")]
+        public async Task<IActionResult> GetTopSellingProducts(DateTime startDate, DateTime endDate, int topCount = 10)
+        {
+            try
+            {
+                var products = await _orderService.GetTopSellingProducts(startDate, endDate, topCount);
+                return Ok(products);
+            }
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, $"Failed to retrieve top selling products: {ex.Message}");
+                throw new ApiException(ex.Message, ex.StatusCode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"An error occurred while retrieving top selling products: {ex.Message}");
                 throw new ApiException($"{ex.Message}");
             }
         }

@@ -1,6 +1,7 @@
 ﻿using AutoWrapper.Wrappers;
 using KhanhSkin_BackEnd.Dtos.InventoryLog;
 using KhanhSkin_BackEnd.Services.InventoryLogs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
@@ -21,6 +22,7 @@ namespace KhanhSkin_BackEnd.Controllers
             _logger = logger;
         }
 
+        [Authorize(Roles = "Admin,Staff")]
         [HttpPost("get-paged-logs")]
         public async Task<IActionResult> GetPagedInventoryLogs([FromBody] InventoryLogGetRequestInput input)
         {

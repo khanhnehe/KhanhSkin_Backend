@@ -92,6 +92,7 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+
         [HttpGet("get-productType/{id}")]
         public async Task<IActionResult> GetById(Guid id)
         {

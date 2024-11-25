@@ -1,6 +1,7 @@
 ﻿using AutoWrapper.Wrappers;
 using KhanhSkin_BackEnd.Dtos.Review;
 using KhanhSkin_BackEnd.Services.Reviews;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
@@ -23,6 +24,7 @@ namespace KhanhSkin_BackEnd.Controllers
         }
 
 
+        [Authorize]
         [HttpPost("create-reviews")]
         public async Task<IActionResult> CreateReviews([FromBody] List<CreateReviewDto> inputs)
         {
@@ -45,7 +47,8 @@ namespace KhanhSkin_BackEnd.Controllers
         }
 
 
-            [HttpPost("get-paged-reviews")]
+        [Authorize]
+        [HttpPost("get-paged-reviews")]
             public async Task<IActionResult> GetPagedReviews([FromBody] ReviewGetRequestInputDto input)
             {
                 try
@@ -68,6 +71,7 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+        [Authorize]
         [HttpPost("get-review-product")]
         public async Task<IActionResult> GetReviewProduct([FromBody] ReviewGetRequestInputDto input)
         {
@@ -92,6 +96,7 @@ namespace KhanhSkin_BackEnd.Controllers
         }
 
 
+        [Authorize(Roles = "Admin,Staff")]
         [HttpPut("change-approval")]
         public async Task<IActionResult> ChangeApprovalStatus([FromBody] ChangeStatusReview input)
         {

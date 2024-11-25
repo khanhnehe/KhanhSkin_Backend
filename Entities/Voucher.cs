@@ -41,7 +41,6 @@ namespace KhanhSkin_BackEnd.Entities
 
         public ICollection<ProductVoucher> ProductVouchers { get; set; } = new List<ProductVoucher>();
 
-        public ICollection<UserVoucher> UserVouchers { get; set; } // Quan hệ với UserVoucher
 
         public Cart Cart { get; set; }
 

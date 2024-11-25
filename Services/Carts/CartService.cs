@@ -22,7 +22,6 @@ namespace KhanhSkin_BackEnd.Services.Carts
         private readonly IRepository<Product> _productRepository;
         private readonly IRepository<ProductVariant> _productVariantRepository;
         private readonly IRepository<KhanhSkin_BackEnd.Entities.Voucher> _voucherRepository;
-        private readonly IRepository<UserVoucher> _userVoucherRepository;
         private readonly IMapper _mapper;
         private readonly ILogger<CartService> _logger;
         private readonly ICurrentUser _currentUser;
@@ -34,7 +33,6 @@ namespace KhanhSkin_BackEnd.Services.Carts
             IRepository<ProductVariant> productVariantRepository,
             IRepository<Product> productRepository,
             IRepository<KhanhSkin_BackEnd.Entities.Voucher> voucherRepository,
-            IRepository<UserVoucher> userVoucherRepository,
             IMapper mapper,
             ILogger<CartService> logger,
             ICurrentUser currentUser)
@@ -46,7 +44,6 @@ namespace KhanhSkin_BackEnd.Services.Carts
             _productRepository = productRepository;
             _productVariantRepository = productVariantRepository;
             _voucherRepository = voucherRepository;
-            _userVoucherRepository = userVoucherRepository;
             _mapper = mapper;
             _logger = logger;
             _currentUser = currentUser;

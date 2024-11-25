@@ -1,6 +1,7 @@
 ﻿using AutoWrapper.Wrappers;
 using KhanhSkin_BackEnd.Dtos.ProductVariant;
 using KhanhSkin_BackEnd.Services.ProductVariants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace KhanhSkin_BackEnd.Controllers
@@ -18,6 +19,8 @@ namespace KhanhSkin_BackEnd.Controllers
             _logger = logger;
         }
 
+
+        [Authorize(Roles = "Admin")]
         [HttpPost("create-varaint")]
         public async Task<IActionResult> Create(ProductVariantDto input)
         {
@@ -38,6 +41,8 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+
+        [Authorize(Roles = "Admin")]
         [HttpPut("update-variant/{id}")]
         public async Task<IActionResult> Update(Guid id, ProductVariantDto input)
         {
@@ -98,6 +103,7 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpDelete("delete-variant/{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {

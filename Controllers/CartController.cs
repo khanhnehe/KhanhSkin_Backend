@@ -23,6 +23,8 @@ namespace KhanhSkin_BackEnd.Controllers
             _logger = logger;
         }
 
+
+        [Authorize]
         [HttpPost("add-product-to-cart")]
         public async Task<IActionResult> AddProductToCart(AddProductToCartDto input)
         {
@@ -42,6 +44,9 @@ namespace KhanhSkin_BackEnd.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+
+
+        [Authorize]
         [HttpDelete("delete/{cartItemId}")]
         public async Task<IActionResult> RemoveCartItem(Guid cartItemId)
         {
@@ -57,6 +62,8 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+
+        [Authorize]
         [HttpGet("get-cart-by-user-id")]
         public async Task<IActionResult> GetCartByUserId()
         {
@@ -78,6 +85,7 @@ namespace KhanhSkin_BackEnd.Controllers
         }
 
 
+        [Authorize]
         [HttpPost("apply-voucher")]
         public async Task<IActionResult> ApplyVoucherToCart([FromBody] ApplyVoucherDto input)
         {

@@ -16,7 +16,6 @@ namespace KhanhSkin_BackEnd.Entities
         public DbSet<Cart> Carts { get; set; }
         public DbSet<CartItem> CartItems { get; set; }
         public DbSet<Voucher> Vouchers { get; set; }
-        public DbSet<VoucherActivity> VoucherActivity { get; set; }
         public DbSet<ProductVoucher> ProductVouchers { get; set; } // Thêm DbSet cho ProductVoucher
         public DbSet<Address> Addresses { get; set; }
         public DbSet<Order> Orders { get; set; }
@@ -279,17 +278,7 @@ namespace KhanhSkin_BackEnd.Entities
                 .HasIndex(ci => new { ci.CartId, ci.ProductId, ci.VariantId })
                 .IsUnique();
 
-            // Thiết lập quan hệ 1 - n giữa user và userVoucher
-            modelBuilder.Entity<UserVoucher>()
-                .HasOne(uv => uv.User)
-                .WithMany(u => u.UserVouchers)
-                .HasForeignKey(uv => uv.UserId);
-
-            // TL quan hệ 1 - n giữa Voucher và UserVoucher
-            modelBuilder.Entity<UserVoucher>()
-                .HasOne(uv => uv.Voucher)
-                .WithMany(v => v.UserVouchers)
-                .HasForeignKey(uv => uv.VoucherId);
+          
 
             // Thiết lập mối quan hệ 1-1 giữa Voucher và Cart
             modelBuilder.Entity<Voucher>()

@@ -1,6 +1,7 @@
 ﻿using AutoWrapper.Wrappers;
 using KhanhSkin_BackEnd.Dtos.Product;
 using KhanhSkin_BackEnd.Services.Products;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,14 +12,20 @@ namespace KhanhSkin_BackEnd.Controllers
     public class ProductController : ControllerBase
     {
         private readonly ProductService _productService;
+        private readonly ProductRecommenService _productRecommenService;
         private readonly ILogger<ProductController> _logger;
 
-        public ProductController(ProductService productService, ILogger<ProductController> logger)
+        public ProductController(ProductService productService,
+                  ProductRecommenService productRecommenService,
+                     ILogger<ProductController> logger)
         {
             _productService = productService;
+            _productRecommenService = productRecommenService;
+
             _logger = logger;
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost("create-product")]
         public async Task<IActionResult> Create([FromBody]  CreateUpdateProductDto input)
         {
@@ -59,6 +66,8 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+
+        [Authorize]
         [HttpGet("get-by-Id-product/{id}")]
         public async Task<IActionResult> Get(Guid id)
         {
@@ -79,6 +88,8 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+
+        [Authorize(Roles = "Admin")]
         [HttpPut("update-product/{id}")]
         public async Task<IActionResult> Update(Guid id, [FromForm] CreateUpdateProductDto input)
         {
@@ -99,6 +110,8 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+
+        [Authorize(Roles = "Admin")]
         [HttpDelete("delete-product/{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
@@ -119,26 +132,7 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
-        [HttpGet("get-filter-products")]
-        public async Task<IActionResult> GetFilteredProducts([FromQuery] ProductGetRequestInputDto input)
-        {
-            try
-            {
-                // Sử dụng phương thức CreateFilteredQuery từ service để lọc sản phẩm
-                var products = await _productService.GetFilteredProducts(input);
-                return Ok(products); // Trả về danh sách sản phẩm đã lọc
-            }
-            catch (ApiException ex)
-            {
-                _logger.LogError(ex, $"Failed to filter products: {ex.Message}");
-                return StatusCode(ex.StatusCode, new { error = ex.Message }); // Trả về lỗi tùy chỉnh
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"An error occurred while filtering products: {ex.Message}");
-                return StatusCode(500, new { error = $"Có lỗi xảy ra: {ex.Message}" }); // Trả về lỗi chung
-            }
-        }
+
 
         [HttpPost("post-filte-products")]
         public async Task<IActionResult> PostFilteredProducts([FromBody] ProductGetRequestInputDto input)
@@ -163,6 +157,7 @@ namespace KhanhSkin_BackEnd.Controllers
 
 
 
+
         [HttpGet("search-product")]
         public async Task<IActionResult> Search([FromQuery] string keyword)
         {
@@ -177,6 +172,7 @@ namespace KhanhSkin_BackEnd.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
+
 
         [HttpGet("get-by-category/{categoryId}")]
         public async Task<IActionResult> GetByCategory(Guid categoryId)
@@ -238,6 +234,7 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+
         [HttpPost("get-paged-products")]
         public async Task<IActionResult> GetPagedProducts([FromBody] ProductGetRequestInputDto input)
         {
@@ -262,13 +259,13 @@ namespace KhanhSkin_BackEnd.Controllers
         }
 
 
-
+        [Authorize(Roles = "Admin")]
         [HttpPost("import-inventory")]
-        public async Task<IActionResult> ImportInventory([FromBody] ProductInventoryImportDto input)
+        public async Task<IActionResult> ImportInventory([FromBody] List<ProductInventoryImportDto> inputs) // Đổi kiểu thành List nếu cần
         {
             try
             {
-                await _productService.ImportProductInventoryAsync(input);
+                await _productService.ImportProductInventoryAsync(inputs);
                 return Ok(new ApiResponse("Nhập hàng thành công."));
             }
             catch (ApiException ex)
@@ -280,6 +277,36 @@ namespace KhanhSkin_BackEnd.Controllers
             {
                 _logger.LogError(ex, $"An error occurred while importing inventory: {ex.Message}");
                 throw new ApiException($" {ex.Message}");
+            }
+        }
+
+
+
+        // Endpoint để lấy danh sách sản phẩm gợi ý
+        [HttpGet("{productId}/recommendations")]
+        public async Task<IActionResult> RecommendProducts(string productId, int topN = 5)
+        {
+            try
+            {
+                // Gọi ProductRecommenService để lấy gợi ý
+                var recommendedProducts = await _productService.RecommendProductsAsync(productId, topN);
+
+                if (recommendedProducts == null)
+                {
+                    return NotFound(new ApiResponse(404, "Không tìm thấy gợi ý cho sản phẩm này."));
+                }
+
+                return Ok(new ApiResponse(recommendedProducts));
+            }
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, $"Failed to fetch recommendations for Product ID: {productId}");
+                throw new ApiException(ex.Message, ex.StatusCode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"An error occurred while fetching recommendations for Product ID: {productId}: {ex.Message}");
+                throw new ApiException($"Có lỗi xảy ra: {ex.Message}");
             }
         }
 

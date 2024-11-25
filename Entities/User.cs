@@ -26,10 +26,12 @@ namespace KhanhSkin_BackEnd.Entities
         public Enums.Role Role { get; set; } = Enums.Role.User;
 
         public Cart Cart { get; set; } // Thêm thuộc tính giỏ hàng
-        public ICollection<UserVoucher> UserVouchers { get; set; } = new List<UserVoucher>();
 
         // Thêm thuộc tính Addresses để thiết lập mối quan hệ 1-n với Address
         public ICollection<Address> Addresses { get; set; } = new List<Address>();
+
+        // Thêm thuộc tính IsActive
+        public bool IsActive { get; set; } = true;
 
     }
 }

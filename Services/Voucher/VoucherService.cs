@@ -7,13 +7,14 @@ using KhanhSkin_BackEnd.Services.CurrentUser;
 using KhanhSkin_BackEnd.Services;
 using static KhanhSkin_BackEnd.Consts.Enums;
 using Microsoft.EntityFrameworkCore;
+using KhanhSkin_BackEnd.Dtos.Supplier;
+using KhanhSkin_BackEnd.Share.Dtos;
 
 public class VoucherService : BaseService<KhanhSkin_BackEnd.Entities.Voucher, VoucherDto, CreateUpdateVoucherDto, VoucherGetRequestInputDto>
 {
     private readonly IConfiguration _config;
     private readonly IRepository<KhanhSkin_BackEnd.Entities.Voucher> _voucherRepository;
     private readonly IRepository<Product> _productRepository;
-    private readonly IRepository<UserVoucher> _userVoucherRepository;
     private readonly IMapper _mapper;
     private readonly ILogger<VoucherService> _logger;
 
@@ -21,7 +22,6 @@ public class VoucherService : BaseService<KhanhSkin_BackEnd.Entities.Voucher, Vo
         IConfiguration config,
         IRepository<KhanhSkin_BackEnd.Entities.Voucher> repository,
         IRepository<Product> productRepository,
-        IRepository<UserVoucher> userVoucherRepository,
         IMapper mapper,
         ILogger<VoucherService> logger,
         ICurrentUser currentUser)
@@ -30,7 +30,6 @@ public class VoucherService : BaseService<KhanhSkin_BackEnd.Entities.Voucher, Vo
         _config = config;
         _voucherRepository = repository;
         _productRepository = productRepository;
-        _userVoucherRepository = userVoucherRepository;
         _mapper = mapper;
         _logger = logger;
     }
@@ -287,5 +286,58 @@ public class VoucherService : BaseService<KhanhSkin_BackEnd.Entities.Voucher, Vo
             throw;
         }
     }
+
+
+    public async Task<PagedViewModel<VoucherDto>> GetVoucherPage(VoucherGetRequestInputDto input)
+    {
+        // Khởi tạo query cơ bản
+        var query = _voucherRepository.AsQueryable();
+
+        // Lọc theo trạng thái (còn hoạt động hoặc hết hiệu lực) nếu có
+        if (!string.IsNullOrEmpty(input.Status))
+        {
+            if (input.Status.ToLower() == "active")
+            {
+                // Voucher còn hoạt động
+                query = query.Where(v => v.TotalUses > 0 && v.EndTime > DateTime.Now && v.IsActive);
+            }
+            else if (input.Status.ToLower() == "inactive")
+            {
+                // Voucher hết hiệu lực
+                query = query.Where(v => v.TotalUses <= 0 || v.EndTime <= DateTime.Now || !v.IsActive);
+            }
+        }
+
+        // Lọc theo FreeTextSearch
+        if (!string.IsNullOrWhiteSpace(input.FreeTextSearch))
+        {
+            var freeTextSearch = input.FreeTextSearch.Trim().ToLower();
+            query = query.Where(p => p.ProgramName.ToLower().Contains(freeTextSearch));
+        }
+
+        // Lấy tổng số bản ghi
+        var totalCount = await query.CountAsync();
+
+        // Sắp xếp trước khi phân trang
+        query = query.OrderBy(p => p.ProgramName) // Có thể thay đổi trường sắp xếp nếu cần
+                     .Skip((input.PageIndex - 1) * input.PageSize)
+                     .Take(input.PageSize);
+
+        // Truy vấn dữ liệu
+        var voucherList = await query.ToListAsync();
+
+        // Chuyển đổi sang DTO
+        var supplierDtoList = _mapper.Map<List<VoucherDto>>(voucherList);
+
+        // Trả về kết quả dạng phân trang
+        return new PagedViewModel<VoucherDto>
+        {
+            Items = supplierDtoList,
+            TotalRecord = totalCount
+        };
+    }
+
+
+
 
 }

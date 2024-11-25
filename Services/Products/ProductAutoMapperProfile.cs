@@ -68,6 +68,9 @@ namespace KhanhSkin_BackEnd.Services.Products
                 .ForMember(dest => dest.ProductPrice, opt => opt.MapFrom(src => src.Variant != null ? src.Variant.PriceVariant : src.Product.Price))
                 .ForMember(dest => dest.ProductSalePrice, opt => opt.MapFrom(src => src.Variant != null ? src.Variant.SalePriceVariant : src.Product.SalePrice));
 
+            CreateMap<ProductInventoryImportDto, KhanhSkin_BackEnd.Entities.InventoryLog>()
+               .ForMember(dest => dest.Id, opt => opt.Ignore());
+
         }
     }
 }
