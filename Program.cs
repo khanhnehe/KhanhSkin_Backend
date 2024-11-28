@@ -53,19 +53,8 @@ builder.Services.AddSingleton(cloudinary);
 builder.Services.AddSingleton<ICloudinary>(cloudinary);
 
 
-// Kiểm tra cấu hình VNPay
-var vnpaySettings = builder.Configuration.GetSection("Vnpay").Get<PaymentSetting>();
-if (vnpaySettings == null)
-{
-    Console.WriteLine("VNPAY configuration is missing.");
-}
-else
-{
-    Console.WriteLine($"VNPAY configuration loaded: TmnCode={vnpaySettings.TmnCode}, Callback={vnpaySettings.PaymentCallBackReturnUrl}");
-}
-
 // Đăng ký PaymentSetting từ appsettings.json
-builder.Services.Configure<PaymentSetting>(builder.Configuration.GetSection("Vnpay"));
+//builder.Services.Configure<PaymentSetting>(builder.Configuration.GetSection("Vnpay"));
 
 
 
@@ -128,8 +117,7 @@ builder.Services.AddScoped<InventoryLogService>();
 builder.Services.AddScoped<CloudinaryService>();
 builder.Services.AddScoped<ProductRecommenService>();
 // Đăng ký PaymentService
-builder.Services.AddScoped<IPaymentService, PaymentService>();
-
+builder.Services.AddScoped<IVnPayService, VnPayService>();
 
 // Đăng ký LocationService với HttpClient
 builder.Services.AddHttpClient<LocationService>();

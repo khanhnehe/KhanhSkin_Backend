@@ -16,9 +16,6 @@ public class Order : BaseEntity
 
     public Guid? CartId { get; set; }
 
-    [ForeignKey("CartId")]
-    public Cart Cart { get; set; }
-
     public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 
     public Guid? VoucherId { get; set; }

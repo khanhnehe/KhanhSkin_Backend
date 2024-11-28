@@ -36,10 +36,10 @@ namespace KhanhSkin_BackEnd.Services.Orders
         private readonly IRepository<KhanhSkin_BackEnd.Entities.Voucher> _voucherRepository;
         private readonly IRepository<KhanhSkin_BackEnd.Entities.InventoryLog> _inventoryLogRepository;
         private readonly IRepository<KhanhSkin_BackEnd.Entities.Address> _addressRepository;
+        private readonly IVnPayService _vnPayService;
         private readonly IMapper _mapper;
         private readonly ILogger<OrderService> _logger;
         private readonly ICurrentUser _currentUser;
-        private readonly IPaymentService _paymentService;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
         public OrderService(
@@ -53,9 +53,9 @@ namespace KhanhSkin_BackEnd.Services.Orders
            IRepository<KhanhSkin_BackEnd.Entities.Voucher> voucherRepository,
            IRepository<KhanhSkin_BackEnd.Entities.Address> addressRepository,
            IMapper mapper,
+           IVnPayService vnPayService,
            ILogger<OrderService> logger,
            IHttpContextAccessor httpContextAccessor,
-           IPaymentService paymentService,
            ICurrentUser currentUser)
            : base(mapper, orderRepository, logger, currentUser)
         {
@@ -69,12 +69,14 @@ namespace KhanhSkin_BackEnd.Services.Orders
             _voucherRepository = voucherRepository;
             _addressRepository = addressRepository;
             _mapper = mapper;
+            _vnPayService = vnPayService;
             _logger = logger;
             _currentUser = currentUser;
-            _paymentService = paymentService;
             _httpContextAccessor = httpContextAccessor;
 
         }
+
+
 
         public async Task<OrderDto> CheckOutOrder(CheckoutOrderDto input)
         {
@@ -84,6 +86,7 @@ namespace KhanhSkin_BackEnd.Services.Orders
                 throw new Exception("User not authenticated");
             }
 
+            // Lấy thông tin giỏ hàng
             var cart = await _cartRepository.AsQueryable()
                 .Include(c => c.CartItems)
                     .ThenInclude(ci => ci.Product)
@@ -97,13 +100,14 @@ namespace KhanhSkin_BackEnd.Services.Orders
                 throw new Exception("Cart not found or does not belong to the current user");
             }
 
+            // Lấy thông tin địa chỉ giao hàng
             var address = await _addressRepository.GetAsync(input.AddressId);
             if (address == null || address.UserId != userId)
             {
                 throw new Exception("Address not found or does not belong to the current user");
             }
 
-            // Tạo đơn hàng
+            // Tạo đối tượng Order
             var order = new Order
             {
                 UserId = userId.Value,
@@ -122,7 +126,27 @@ namespace KhanhSkin_BackEnd.Services.Orders
 
             order.FinalPrice = cart.FinalPrice + order.ShippingPrice;
 
-            // Xử lý voucher nếu có
+            // Nếu phương thức thanh toán là VNPay, tạo URL thanh toán nhưng vẫn tạo Order
+            if (input.PaymentMethod == PaymentMethod.Vnpay)
+            {
+                var paymentModel = new PaymentInformationModel
+                {
+                    OrderType = "other",
+                    Amount = (double)order.FinalPrice,
+                    OrderDescription = "Thanh toán đơn hàng",
+                    Name = _currentUser.FullName ?? "Khách hàng"
+                };
+
+                var paymentUrl = _vnPayService.CreatePaymentUrl(paymentModel, _httpContextAccessor.HttpContext);
+
+                // Log URL thanh toán
+                _logger.LogInformation("Generated Payment URL: {PaymentUrl}", paymentUrl);
+
+                // Lưu URL thanh toán vào OrderDto để trả về sau
+                order.OrderStatus = Enums.OrderStatus.Pending; // Đơn hàng đang chờ thanh toán
+            }
+
+            // Áp dụng voucher nếu có
             if (cart.VoucherId.HasValue)
             {
                 var voucher = await _voucherRepository
@@ -151,7 +175,7 @@ namespace KhanhSkin_BackEnd.Services.Orders
                 order.VoucherId = voucher.Id;
             }
 
-            // Tạo danh sách OrderItems từ CartItems
+            // Tạo danh sách sản phẩm trong đơn hàng
             var orderItems = cart.CartItems.Select(cartItem => new OrderItem
             {
                 ProductId = cartItem.ProductId,
@@ -167,7 +191,7 @@ namespace KhanhSkin_BackEnd.Services.Orders
 
             order.OrderItems = orderItems;
 
-            // Trừ hàng tồn kho
+            // Cập nhật số lượng sản phẩm và log lịch sử
             foreach (var cartItem in cart.CartItems)
             {
                 var product = await _productRepository.GetAsync(cartItem.ProductId);
@@ -175,6 +199,11 @@ namespace KhanhSkin_BackEnd.Services.Orders
                 if (cartItem.VariantId.HasValue)
                 {
                     var variant = await _productVariantRepository.GetAsync(cartItem.VariantId.Value);
+                    if (variant == null)
+                    {
+                        throw new Exception($"Variant không tồn tại cho sản phẩm {product.ProductName}");
+                    }
+
                     if (variant.QuantityVariant < cartItem.Amount)
                     {
                         throw new Exception($"Số lượng variant {variant.NameVariant} không đủ để thực hiện đơn hàng.");
@@ -199,68 +228,33 @@ namespace KhanhSkin_BackEnd.Services.Orders
             }
 
             order.TrackingCode = CreateTrackingCode();
-            if (input.PaymentMethod == Enums.PaymentMethod.Vnpay)
-            {
-                _logger.LogInformation("Processing payment with VNPay.");
-                if (_paymentService == null)
-                {
-                    _logger.LogError("PaymentService is not initialized.");
-                    throw new Exception("PaymentService is not initialized.");
-                }
 
-                // Lưu đơn hàng trước khi tạo URL thanh toán
-                await _orderRepository.CreateAsync(order);
-
-                // Kiểm tra OrderId
-                if (order.Id == Guid.Empty || order.Id == null)
-                {
-                    _logger.LogError("Failed to generate OrderId.");
-                    throw new Exception("Failed to generate OrderId.");
-                }
-
-                var paymentModel = new PaymentWithVNPAY
-                {
-                    OrderId = order.Id,
-                    OrderType = "billpayment",
-                    Amount = (double)(cart.FinalPrice + order.ShippingPrice),
-                    Name = $"Thanh toán đơn hàng #{order.TrackingCode}"
-                };
-
-                _logger.LogInformation("Payment model created. Amount: {Amount}, OrderId: {OrderId}", paymentModel.Amount, paymentModel.OrderId);
-
-                try
-                {
-                    var paymentUrl = _paymentService.CreatePaymentUrlVNPAY(paymentModel, _httpContextAccessor.HttpContext);
-                    _logger.LogInformation("VNPay payment URL created successfully: {PaymentUrl}", paymentUrl);
-
-                    // Cập nhật trạng thái đơn hàng
-                    order.OrderStatus = Enums.OrderStatus.Shipping; // Chờ thanh toán
-                    await _orderRepository.UpdateAsync(order);
-
-                    // Xóa giỏ hàng
-                    await _cartRepository.DeleteAsync(cart.Id);
-
-                    var orderDto = _mapper.Map<OrderDto>(order);
-                    orderDto.PaymentUrl = paymentUrl;
-                    return orderDto;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error occurred while creating VNPay payment URL.");
-                    throw;
-                }
-            }
-
-
-            // Với COD (Receive), xử lý đơn hàng ngay
-            order.OrderStatus = Enums.OrderStatus.Pending; // Đang xử lý
+            // Lưu Order vào database
             await _orderRepository.CreateAsync(order);
 
-            // Xóa giỏ hàng
+            // Xóa giỏ hàng sau khi tạo Order
             await _cartRepository.DeleteAsync(cart.Id);
 
-            var resultDto = _mapper.Map<OrderDto>(order);
-            return resultDto;
+            // Trả về OrderDto
+            var orderDto = _mapper.Map<OrderDto>(order);
+            orderDto.Address = _mapper.Map<AddressDto>(address);
+
+            orderDto.ShippingMethodDes = order.ShippingMethod.GetDescription();
+            orderDto.PaymentMethodDes = order.PaymentMethod.GetDescription();
+            orderDto.OrderStatusDes = order.OrderStatus.GetDescription();
+
+            if (input.PaymentMethod == PaymentMethod.Vnpay)
+            {
+                orderDto.PaymentUrl = _vnPayService.CreatePaymentUrl(new PaymentInformationModel
+                {
+                    OrderType = "other",
+                    Amount = (double)order.FinalPrice,
+                    OrderDescription = "Thanh toán đơn hàng",
+                    Name = _currentUser.FullName ?? "Khách hàng"
+                }, _httpContextAccessor.HttpContext);
+            }
+
+            return orderDto;
         }
 
 
@@ -582,7 +576,7 @@ namespace KhanhSkin_BackEnd.Services.Orders
 
                 await _productRepository.UpdateAsync(product);
                 // Tạo InventoryLog từ orderItem sau khi hoàn tác số lượng
-                await LogInventoryOrderItem(orderItem, Enums.ActionType.Import, "Hủy đơn");
+                await LogInventoryOrderItem(orderItem, Enums.ActionType.CancelProduct, "Hủy đơn");
             }
         }
 

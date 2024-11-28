@@ -333,11 +333,11 @@ namespace KhanhSkin_BackEnd.Entities
 
 
 
-            modelBuilder.Entity<Order>()
-                .HasOne(o => o.Cart)
-                .WithMany()
-                .HasForeignKey(o => o.CartId)
-                .OnDelete(DeleteBehavior.NoAction);
+            //modelBuilder.Entity<Order>()
+            //    .HasOne(o => o.Cart)
+            //    .WithMany()
+            //    .HasForeignKey(o => o.CartId)
+            //    .OnDelete(DeleteBehavior.NoAction);
 
 
         }

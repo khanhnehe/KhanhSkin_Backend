@@ -1,11 +1,6 @@
-﻿using AutoWrapper.Wrappers;
+﻿using Microsoft.AspNetCore.Mvc;
 using KhanhSkin_BackEnd.Dtos.Payment;
 using KhanhSkin_BackEnd.Services.PaymentVNpay;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Threading.Tasks;
 
 namespace KhanhSkin_BackEnd.Controllers
 {
@@ -13,60 +8,34 @@ namespace KhanhSkin_BackEnd.Controllers
     [Route("api/[controller]")]
     public class PaymentController : ControllerBase
     {
-        private readonly IPaymentService _paymentService;
-        private readonly ILogger<PaymentController> _logger;
+        private readonly IVnPayService _vnPayService;
 
-        public PaymentController(IPaymentService paymentService, ILogger<PaymentController> logger)
+        public PaymentController(IVnPayService vnPayService)
         {
-            _paymentService = paymentService;
-            _logger = logger;
+            _vnPayService = vnPayService;
         }
 
-        /// <summary>
-        /// Tạo URL thanh toán VNPay
-        /// </summary>
-        [Authorize]
-        [HttpPost("vnpay/create")]
-        public async Task<IActionResult> CreateVNPayPayment([FromBody] PaymentWithVNPAY model)
+        [HttpPost("create-payment-url")]
+        public IActionResult CreatePaymentUrl([FromBody] PaymentInformationModel paymentModel)
         {
-            try
-            {
-                var paymentUrl = _paymentService.CreatePaymentUrlVNPAY(model, HttpContext);
-                return Ok(new { paymentUrl });
-            }
-            catch (ApiException ex)
-            {
-                _logger.LogError(ex, $"Failed to create VNPay payment: {ex.Message}");
-                throw new ApiException(ex.Message, ex.StatusCode);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"An error occurred while creating VNPay payment: {ex.Message}");
-                throw new ApiException($"{ex.Message}");
-            }
+            var paymentUrl = _vnPayService.CreatePaymentUrl(paymentModel, HttpContext);
+            return Ok(new { PaymentUrl = paymentUrl });
         }
 
-        /// <summary>
-        /// Xử lý callback từ VNPay
-        /// </summary>
-        [HttpGet("vnpay/callback")]
-        public IActionResult VNPayCallback([FromQuery] IQueryCollection query)
+        [HttpGet("payment-callback")]
+        public IActionResult PaymentCallback()
         {
-            try
+            // Kiểm tra SecureHash
+            var isValid = _vnPayService.PaymentExecute(Request.Query).Success;
+
+            if (!isValid)
             {
-                var response = _paymentService.PaymentExecute(query);
-                return Ok(response);
+                return BadRequest(new { message = "Sai mã SecureHash hoặc giao dịch không hợp lệ." });
             }
-            catch (ApiException ex)
-            {
-                _logger.LogError(ex, $"Failed to process VNPay callback: {ex.Message}");
-                throw new ApiException(ex.Message, ex.StatusCode);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"An error occurred while processing VNPay callback: {ex.Message}");
-                throw new ApiException($"{ex.Message}");
-            }
+
+            // Xử lý phản hồi giao dịch
+            var response = _vnPayService.PaymentExecute(Request.Query);
+            return Ok(response);
         }
     }
 }
