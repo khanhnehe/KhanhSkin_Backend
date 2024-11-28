@@ -4,8 +4,7 @@ namespace KhanhSkin_BackEnd.Dtos.Report
 {
     public class ReportRequestDto
     {
-        public DateTime StartDate { get; set; }
-        public DateTime EndDate { get; set; }
-        public Enums.PeriodType PeriodType { get; set; } // Sử dụng Enum PeriodType
+        public Enums.PeriodType PeriodType { get; set; } // Xác định loại thống kê: Ngày, Tháng, Năm
+        public int? SelectedMonth { get; set; } // Chỉ sử dụng khi PeriodType = Month
     }
 }

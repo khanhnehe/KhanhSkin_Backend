@@ -48,6 +48,9 @@ namespace KhanhSkin_BackEnd.Dtos.Order
         public string PaymentMethodDes { get; set; }
         public string OrderStatusDes { get; set; }
 
+        // URL thanh toán VNPay
+        public string? PaymentUrl { get; set; }
+
     }
 }
      

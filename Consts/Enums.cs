@@ -78,10 +78,10 @@ namespace KhanhSkin_BackEnd.Consts
 
         public enum PeriodType
         {
-            Day = 1,
-            Week,
-            Month,
-            Year
+            Day = 1,   // Thống kê theo ngày
+            Month = 2, // Thống kê theo tháng
+            Year = 3   // Thống kê theo năm
         }
+
     }
 }

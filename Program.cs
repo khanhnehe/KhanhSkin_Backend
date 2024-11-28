@@ -32,6 +32,8 @@ using KhanhSkin_BackEnd.Services.Reviews;
 using KhanhSkin_BackEnd.Services.Suppliers;
 using KhanhSkin_BackEnd.Services.InventoryLog;
 using KhanhSkin_BackEnd.Services.InventoryLogs;
+using KhanhSkin_BackEnd.Dtos.Payment;
+using KhanhSkin_BackEnd.Services.PaymentVNpay;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,6 +51,21 @@ var cloudinaryAccount = new Account(
 var cloudinary = new Cloudinary(cloudinaryAccount);
 builder.Services.AddSingleton(cloudinary);
 builder.Services.AddSingleton<ICloudinary>(cloudinary);
+
+
+// Kiểm tra cấu hình VNPay
+var vnpaySettings = builder.Configuration.GetSection("Vnpay").Get<PaymentSetting>();
+if (vnpaySettings == null)
+{
+    Console.WriteLine("VNPAY configuration is missing.");
+}
+else
+{
+    Console.WriteLine($"VNPAY configuration loaded: TmnCode={vnpaySettings.TmnCode}, Callback={vnpaySettings.PaymentCallBackReturnUrl}");
+}
+
+// Đăng ký PaymentSetting từ appsettings.json
+builder.Services.Configure<PaymentSetting>(builder.Configuration.GetSection("Vnpay"));
 
 
 
@@ -110,6 +127,8 @@ builder.Services.AddScoped<SupplierService>();
 builder.Services.AddScoped<InventoryLogService>();
 builder.Services.AddScoped<CloudinaryService>();
 builder.Services.AddScoped<ProductRecommenService>();
+// Đăng ký PaymentService
+builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 
 // Đăng ký LocationService với HttpClient

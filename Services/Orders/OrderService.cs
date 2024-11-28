@@ -19,6 +19,9 @@ using static KhanhSkin_BackEnd.Consts.Enums;
 using System.Text.RegularExpressions;
 using KhanhSkin_BackEnd.Dtos.Report;
 using System.Globalization;
+using KhanhSkin_BackEnd.Dtos.Payment;
+using KhanhSkin_BackEnd.Services.PaymentVNpay;
+using Microsoft.AspNetCore.Http;
 
 namespace KhanhSkin_BackEnd.Services.Orders
 {
@@ -36,6 +39,8 @@ namespace KhanhSkin_BackEnd.Services.Orders
         private readonly IMapper _mapper;
         private readonly ILogger<OrderService> _logger;
         private readonly ICurrentUser _currentUser;
+        private readonly IPaymentService _paymentService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public OrderService(
            IConfiguration config,
@@ -49,6 +54,8 @@ namespace KhanhSkin_BackEnd.Services.Orders
            IRepository<KhanhSkin_BackEnd.Entities.Address> addressRepository,
            IMapper mapper,
            ILogger<OrderService> logger,
+           IHttpContextAccessor httpContextAccessor,
+           IPaymentService paymentService,
            ICurrentUser currentUser)
            : base(mapper, orderRepository, logger, currentUser)
         {
@@ -64,6 +71,9 @@ namespace KhanhSkin_BackEnd.Services.Orders
             _mapper = mapper;
             _logger = logger;
             _currentUser = currentUser;
+            _paymentService = paymentService;
+            _httpContextAccessor = httpContextAccessor;
+
         }
 
         public async Task<OrderDto> CheckOutOrder(CheckoutOrderDto input)
@@ -93,6 +103,7 @@ namespace KhanhSkin_BackEnd.Services.Orders
                 throw new Exception("Address not found or does not belong to the current user");
             }
 
+            // Tạo đơn hàng
             var order = new Order
             {
                 UserId = userId.Value,
@@ -111,6 +122,7 @@ namespace KhanhSkin_BackEnd.Services.Orders
 
             order.FinalPrice = cart.FinalPrice + order.ShippingPrice;
 
+            // Xử lý voucher nếu có
             if (cart.VoucherId.HasValue)
             {
                 var voucher = await _voucherRepository
@@ -128,44 +140,34 @@ namespace KhanhSkin_BackEnd.Services.Orders
                     throw new Exception("Giá trị đơn hàng không đủ để áp dụng voucher.");
                 }
 
-                // Kiểm tra nếu Voucher còn sử dụng được
                 if (voucher.TotalUses <= 0)
                 {
                     throw new Exception("Voucher này đã được sử dụng hết.");
                 }
 
-                // Trừ TotalUses đi 1
                 voucher.TotalUses--;
-
-                // Cập nhật lại voucher trong cơ sở dữ liệu
                 await _voucherRepository.UpdateAsync(voucher);
 
                 order.VoucherId = voucher.Id;
             }
 
-
-            var orderItems = new List<OrderItem>();
-
-            foreach (var cartItem in cart.CartItems)
+            // Tạo danh sách OrderItems từ CartItems
+            var orderItems = cart.CartItems.Select(cartItem => new OrderItem
             {
-                var orderItem = new OrderItem
-                {
-                    ProductId = cartItem.ProductId,
-                    ProductName = cartItem.Product.ProductName,
-                    VariantId = cartItem.VariantId,
-                    NameVariant = cartItem.Variant?.NameVariant,
-                    ProductPrice = cartItem.ProductPrice,
-                    ProductSalePrice = cartItem.ProductSalePrice,
-                    Amount = cartItem.Amount,
-                    ItemsPrice = cartItem.ItemsPrice,
-                    Images = cartItem.Product.Images.ToList()
-                };
-
-                orderItems.Add(orderItem);
-            }
+                ProductId = cartItem.ProductId,
+                ProductName = cartItem.Product.ProductName,
+                VariantId = cartItem.VariantId,
+                NameVariant = cartItem.Variant?.NameVariant,
+                ProductPrice = cartItem.ProductPrice,
+                ProductSalePrice = cartItem.ProductSalePrice,
+                Amount = cartItem.Amount,
+                ItemsPrice = cartItem.ItemsPrice,
+                Images = cartItem.Product.Images.ToList()
+            }).ToList();
 
             order.OrderItems = orderItems;
 
+            // Trừ hàng tồn kho
             foreach (var cartItem in cart.CartItems)
             {
                 var product = await _productRepository.GetAsync(cartItem.ProductId);
@@ -173,11 +175,6 @@ namespace KhanhSkin_BackEnd.Services.Orders
                 if (cartItem.VariantId.HasValue)
                 {
                     var variant = await _productVariantRepository.GetAsync(cartItem.VariantId.Value);
-                    if (variant == null)
-                    {
-                        throw new Exception($"Variant không tồn tại cho sản phẩm {product.ProductName}");
-                    }
-
                     if (variant.QuantityVariant < cartItem.Amount)
                     {
                         throw new Exception($"Số lượng variant {variant.NameVariant} không đủ để thực hiện đơn hàng.");
@@ -198,27 +195,75 @@ namespace KhanhSkin_BackEnd.Services.Orders
                 }
 
                 await _productRepository.UpdateAsync(product);
-
-                // Tạo InventoryLog từ cartItem thay vì orderItem
                 await LogInventoryFromCartItem(cartItem, Enums.ActionType.Export, "Đặt hàng");
-
             }
 
             order.TrackingCode = CreateTrackingCode();
+            if (input.PaymentMethod == Enums.PaymentMethod.Vnpay)
+            {
+                _logger.LogInformation("Processing payment with VNPay.");
+                if (_paymentService == null)
+                {
+                    _logger.LogError("PaymentService is not initialized.");
+                    throw new Exception("PaymentService is not initialized.");
+                }
 
+                // Lưu đơn hàng trước khi tạo URL thanh toán
+                await _orderRepository.CreateAsync(order);
+
+                // Kiểm tra OrderId
+                if (order.Id == Guid.Empty || order.Id == null)
+                {
+                    _logger.LogError("Failed to generate OrderId.");
+                    throw new Exception("Failed to generate OrderId.");
+                }
+
+                var paymentModel = new PaymentWithVNPAY
+                {
+                    OrderId = order.Id,
+                    OrderType = "billpayment",
+                    Amount = (double)(cart.FinalPrice + order.ShippingPrice),
+                    Name = $"Thanh toán đơn hàng #{order.TrackingCode}"
+                };
+
+                _logger.LogInformation("Payment model created. Amount: {Amount}, OrderId: {OrderId}", paymentModel.Amount, paymentModel.OrderId);
+
+                try
+                {
+                    var paymentUrl = _paymentService.CreatePaymentUrlVNPAY(paymentModel, _httpContextAccessor.HttpContext);
+                    _logger.LogInformation("VNPay payment URL created successfully: {PaymentUrl}", paymentUrl);
+
+                    // Cập nhật trạng thái đơn hàng
+                    order.OrderStatus = Enums.OrderStatus.Shipping; // Chờ thanh toán
+                    await _orderRepository.UpdateAsync(order);
+
+                    // Xóa giỏ hàng
+                    await _cartRepository.DeleteAsync(cart.Id);
+
+                    var orderDto = _mapper.Map<OrderDto>(order);
+                    orderDto.PaymentUrl = paymentUrl;
+                    return orderDto;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error occurred while creating VNPay payment URL.");
+                    throw;
+                }
+            }
+
+
+            // Với COD (Receive), xử lý đơn hàng ngay
+            order.OrderStatus = Enums.OrderStatus.Pending; // Đang xử lý
             await _orderRepository.CreateAsync(order);
 
+            // Xóa giỏ hàng
             await _cartRepository.DeleteAsync(cart.Id);
 
-            var orderDto = _mapper.Map<OrderDto>(order);
-            orderDto.Address = _mapper.Map<AddressDto>(address);
-
-            orderDto.ShippingMethodDes = order.ShippingMethod.GetDescription();
-            orderDto.PaymentMethodDes = order.PaymentMethod.GetDescription();
-            orderDto.OrderStatusDes = order.OrderStatus.GetDescription();
-
-            return orderDto;
+            var resultDto = _mapper.Map<OrderDto>(order);
+            return resultDto;
         }
+
+
 
         private string CreateTrackingCode()
         {
@@ -229,135 +274,194 @@ namespace KhanhSkin_BackEnd.Services.Orders
         // Thống kê doanh thu và lợi nhuận
         public async Task<List<ReportResponseDto>> GetRevenueAndProfitReports(ReportRequestDto request)
         {
-            // Chuẩn bị dữ liệu nếu thiếu
-            var preparedRequest = await PrepareReportRequest(request);
+            // Tính toán StartDate và EndDate dựa trên PeriodType
+            var (startDate, endDate) = CalculateDateRange(request);
 
-            var data = await GetRevenueProfitDataAsync(preparedRequest);
+            // Lọc các đơn hàng trong khoảng thời gian
+            var orders = await _orderRepository.AsQueryable()
+                .Where(o => o.OrderDate >= startDate && o.OrderDate <= endDate && o.OrderStatus == OrderStatus.Completed)
+                .Include(o => o.OrderItems)
+                .ToListAsync();
 
-            for (int i = 1; i < data.Count; i++)
-            {
-                var current = data[i];
-                var previous = data[i - 1];
+            // Lấy toàn bộ InventoryLog liên quan đến các sản phẩm trong các đơn hàng
+            var productIds = orders.SelectMany(o => o.OrderItems.Select(i => i.ProductId)).Distinct();
+            var variantIds = orders.SelectMany(o => o.OrderItems.Select(i => i.VariantId)).Distinct();
 
-                if (previous.Revenue > 0)
-                {
-                    current.GrowthRate = ((current.Revenue - previous.Revenue) / previous.Revenue) * 100;
-                }
-                else
-                {
-                    current.GrowthRate = null; // Không có dữ liệu kỳ trước
-                }
-            }
+            var inventoryLogs = await _inventoryLogRepository.AsQueryable()
+                .Where(log => productIds.Contains(log.ProductId) &&
+                              variantIds.Contains(log.ProductVariantId) &&
+                              log.ActionType == ActionType.Import &&
+                              log.QuantityChange > 0)
+                .OrderBy(log => log.TransactionDate) // FIFO
+                .ToListAsync();
 
-            if (data.Count > 0)
-            {
-                data[0].GrowthRate = null; // Không có dữ liệu kỳ trước để so sánh
-            }
-
-            return data;
-        }
-
-        // Chuẩn bị ReportRequestDto nếu cần gán giá trị mặc định
-        private async Task<ReportRequestDto> PrepareReportRequest(ReportRequestDto request)
-        {
-            var today = DateTime.UtcNow;
-
-            // Lấy minDate và maxDate từ dữ liệu
-            var minDate = await _orderRepository.AsQueryable()
-                .OrderBy(o => o.OrderDate)
-                .Select(o => o.OrderDate)
-                .FirstOrDefaultAsync();
-
-            var maxDate = await _orderRepository.AsQueryable()
-                .OrderByDescending(o => o.OrderDate)
-                .Select(o => o.OrderDate)
-                .FirstOrDefaultAsync();
-
-            // Nếu không có dữ liệu, mặc định toàn bộ năm hiện tại
-            minDate = minDate == default ? new DateTime(today.Year, 1, 1) : minDate;
-            maxDate = maxDate == default ? new DateTime(today.Year, 12, 31, 23, 59, 59) : maxDate;
-
-            // Gán giá trị mặc định nếu cần
-            request.StartDate = request.StartDate == default ? minDate : request.StartDate;
-            request.EndDate = request.EndDate == default ? maxDate : request.EndDate;
-
-            return request;
-        }
-
-        private async Task<List<ReportResponseDto>> GetRevenueProfitDataAsync(ReportRequestDto request)
-        {
-            var query = _orderRepository.AsQueryable()
-                .Where(o => o.OrderDate >= request.StartDate &&
-                            o.OrderDate <= request.EndDate &&
-                            o.OrderStatus == OrderStatus.Completed);
-
-            var orders = await query.Include(o => o.OrderItems).ToListAsync();
-
+            // Nhóm dữ liệu theo PeriodType
             var groupedData = orders
                 .GroupBy(o =>
                 {
-                    if (request.PeriodType == PeriodType.Day)
-                        return o.OrderDate.Date.ToString("yyyy-MM-dd");
-                    if (request.PeriodType == PeriodType.Week)
-                        return $"Week {ISOWeek.GetWeekOfYear(o.OrderDate)}-{o.OrderDate.Year}";
-                    if (request.PeriodType == PeriodType.Month)
-                        return $"{o.OrderDate:yyyy-MM}";
-                    if (request.PeriodType == PeriodType.Year)
-                        return o.OrderDate.Year.ToString();
-
-                    return o.OrderDate.Date.ToString("yyyy-MM-dd"); // Mặc định là ngày
+                    return request.PeriodType switch
+                    {
+                        PeriodType.Day => o.OrderDate.Date.ToString("yyyy-MM-dd"),
+                        PeriodType.Month => o.OrderDate.Date.ToString("yyyy-MM-dd"), // Nhóm theo từng ngày
+                        PeriodType.Year => $"{o.OrderDate.Month}/{o.OrderDate.Year}", // Nhóm theo từng tháng
+                        _ => throw new Exception("PeriodType không hợp lệ.")
+                    };
                 })
                 .Select(group => new ReportResponseDto
                 {
-                    TimePeriod = group.Key, // Key của GroupBy là chuỗi
+                    TimePeriod = group.Key,
                     Revenue = group.Sum(o => o.FinalPrice - o.ShippingPrice),
-                    GrossProfit = group.Sum(o => GrossProfit(o))
+                    GrossProfit = group.Sum(o => CalculateGrossProfit(o, inventoryLogs)) // Tính lợi nhuận gộp
                 })
                 .ToList();
+
+            // Bổ sung dữ liệu rỗng (nếu không có) cho tất cả các ngày trong tháng hoặc các tháng trong năm
+            if (request.PeriodType == PeriodType.Month)
+            {
+                // Lấy số ngày trong tháng
+                var currentYear = DateTime.UtcNow.Year;
+                var selectedMonth = request.SelectedMonth ?? DateTime.UtcNow.Month;
+                var daysInMonth = DateTime.DaysInMonth(currentYear, selectedMonth);
+
+                var fullMonthData = Enumerable.Range(1, daysInMonth)
+                    .Select(day => new ReportResponseDto
+                    {
+                        TimePeriod = new DateTime(currentYear, selectedMonth, day).ToString("yyyy-MM-dd"),
+                        Revenue = groupedData.FirstOrDefault(g => g.TimePeriod == new DateTime(currentYear, selectedMonth, day).ToString("yyyy-MM-dd"))?.Revenue ?? 0,
+                        GrossProfit = groupedData.FirstOrDefault(g => g.TimePeriod == new DateTime(currentYear, selectedMonth, day).ToString("yyyy-MM-dd"))?.GrossProfit ?? 0,
+                        GrowthRate = null
+                    })
+                    .ToList();
+
+                groupedData = fullMonthData;
+            }
+            else if (request.PeriodType == PeriodType.Year)
+            {
+                // Thêm đủ 12 tháng
+                var currentYear = DateTime.UtcNow.Year;
+
+                var fullYearData = Enumerable.Range(1, 12)
+                    .Select(month => new ReportResponseDto
+                    {
+                        TimePeriod = $"{month:D2}/{currentYear}",
+                        Revenue = groupedData.FirstOrDefault(g => g.TimePeriod == $"{month}/{currentYear}")?.Revenue ?? 0,
+                        GrossProfit = groupedData.FirstOrDefault(g => g.TimePeriod == $"{month}/{currentYear}")?.GrossProfit ?? 0,
+                        GrowthRate = null
+                    })
+                    .ToList();
+
+                groupedData = fullYearData;
+            }
+
+            // Tính tỷ lệ tăng trưởng
+            for (int i = 1; i < groupedData.Count; i++)
+            {
+                var current = groupedData[i];
+                var previous = groupedData[i - 1];
+
+                current.GrowthRate = previous.Revenue > 0
+                    ? ((current.Revenue - previous.Revenue) / previous.Revenue) * 100
+                    : null;
+            }
+
+            if (groupedData.Count > 0)
+            {
+                groupedData[0].GrowthRate = null; // Không có kỳ trước để so sánh
+            }
 
             return groupedData;
         }
 
-        private decimal GrossProfit(Order order)
+
+
+        private (DateTime StartDate, DateTime EndDate) CalculateDateRange(ReportRequestDto request)
+        {
+            var currentYear = DateTime.UtcNow.Year;
+
+            switch (request.PeriodType)
+            {
+                case Enums.PeriodType.Day:
+                    // Thống kê ngày hiện tại
+                    var today = DateTime.Now.Date;
+                    var timeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                    var localTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZone).Date;
+                    return (localTime, localTime.AddDays(1).AddTicks(-1));
+
+                case Enums.PeriodType.Month:
+                    // Kiểm tra SelectedMonth
+                    if (!request.SelectedMonth.HasValue || request.SelectedMonth < 1 || request.SelectedMonth > 12)
+                    {
+                        throw new Exception("SelectedMonth phải nằm trong khoảng từ 1 đến 12.");
+                    }
+
+                    // Thống kê tháng được chọn
+                    var startOfMonth = new DateTime(currentYear, request.SelectedMonth.Value, 1);
+                    var endOfMonth = startOfMonth.AddMonths(1).AddTicks(-1);
+                    return (startOfMonth, endOfMonth);
+
+                case Enums.PeriodType.Year:
+                    // Thống kê toàn bộ năm hiện tại
+                    var startOfYear = new DateTime(currentYear, 1, 1);
+                    var endOfYear = new DateTime(currentYear, 12, 31, 23, 59, 59);
+                    return (startOfYear, endOfYear);
+
+                default:
+                    throw new Exception("PeriodType không hợp lệ.");
+            }
+        }
+
+        // Tính lợi nhuận gộp
+        private decimal CalculateGrossProfit(Order order, List<KhanhSkin_BackEnd.Entities.InventoryLog> inventoryLogs)
         {
             decimal totalProfit = 0;
 
             foreach (var item in order.OrderItems)
             {
-        // Số lượng cần bán
                 int remainingQuantity = item.Amount;
 
-                // Lấy dữ liệu nhập kho sắp xếp theo ngày
-                var inventoryLogs = _inventoryLogRepository.AsQueryable()
-                    .Where(log => log.ProductId == item.ProductId && log.ProductVariantId == item.VariantId)
-                    .OrderBy(log => log.TransactionDate)
+                // Lọc các log liên quan đến sản phẩm/biến thể hiện tại
+                var logsForItem = inventoryLogs
+                    .Where(log => log.ProductId == item.ProductId &&
+                                  log.ProductVariantId == item.VariantId)
                     .ToList();
+
+                if (!logsForItem.Any())
+                {
+                    // Không có dữ liệu nhập kho cho sản phẩm này, bỏ qua hoặc đánh dấu lỗi
+                    Console.WriteLine($"Không tìm thấy dữ liệu nhập kho cho sản phẩm {item.ProductName}.");
+                    continue;
+                }
 
                 decimal totalCost = 0;
 
-                foreach (var log in inventoryLogs)
+                foreach (var log in logsForItem)
                 {
-                    // Nếu số lượng còn lại lớn hơn số lượng nhập trong log hiện tại
                     if (remainingQuantity > log.QuantityChange)
                     {
                         totalCost += log.CostPrice.GetValueOrDefault() * log.QuantityChange;
-                        remainingQuantity -= log.QuantityChange; // Trừ số lượng đã bán khỏi lô hiện tại
+                        remainingQuantity -= log.QuantityChange;
                     }
                     else
                     {
-                        // Chỉ sử dụng số lượng còn lại
                         totalCost += log.CostPrice.GetValueOrDefault() * remainingQuantity;
-                        break; // Đã đủ số lượng bán ra
+                        remainingQuantity = 0; // Đã đủ số lượng bán
+                        break;
                     }
+                }
+
+                // Xử lý tồn kho không đủ
+                if (remainingQuantity > 0)
+                {
+                    Console.WriteLine($"Tồn kho không đủ cho sản phẩm {item.ProductName}, thiếu {remainingQuantity}.");
+                    continue; // Bỏ qua sản phẩm này
+                }
+
+                var itemProfit = item.ItemsPrice - totalCost;
+                totalProfit += itemProfit;
+            }
+
+            return totalProfit;
         }
-
-        // Tổng giá vốn đã tính xong => Tính lợi nhuận cho từng sản phẩm
-        var itemProfit = item.ItemsPrice - totalCost;
-        totalProfit += itemProfit;
-    }
-
-    return totalProfit;
-}
 
 
         public async Task<List<TopProductReportDto>> GetTopSellingProducts(DateTime startDate, DateTime endDate, int topCount = 10)
