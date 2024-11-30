@@ -68,13 +68,12 @@ namespace KhanhSkin_BackEnd.Services.Users
             }
 
             // Hash mật khẩu trước khi lưu
-            var hashedPassword = _passwordHasher.HashPassword(new User(), input.Password);
+            //var hashedPassword = _passwordHasher.HashPassword(new User(), input.Password);
 
 
 
             // Tạo đối tượng User từ UserCreateDto
             var user = _mapper.Map<User>(input);
-            user.Password = hashedPassword;
 
             if (input.ImageFile != null)
             {
@@ -140,15 +139,24 @@ namespace KhanhSkin_BackEnd.Services.Users
         }
 
 
-       
 
 
-        public async Task<bool> ChangePassword(string email, string currentPassword, string newPassword)
+
+        public async Task<bool> ChangePassword(string currentPassword, string newPassword)
         {
-            var user = await _userRepository.AsQueryable().IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Email == email);
+            var userId = _currentUser.Id;
+
+            // Kiểm tra xem user đã được xác thực chưa
+            if (userId == null)
+            {
+                throw new ApiException("User not authenticated.");
+            }
+
+            // Lấy thông tin user hiện tại
+            var user = await _userRepository.AsQueryable().FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null)
             {
-                throw new ApiException("Không tìm thấy người dùng.");
+                throw new ApiException("User not found.");
             }
 
             // Kiểm tra mật khẩu hiện tại
@@ -158,13 +166,20 @@ namespace KhanhSkin_BackEnd.Services.Users
                 throw new ApiException("Mật khẩu hiện tại không chính xác.");
             }
 
-            // Hash mật khẩu mới và cập nhật
-            user.Password = _passwordHasher.HashPassword(user, newPassword);
+            // Hash mật khẩu mới
+            var hashedNewPassword = _passwordHasher.HashPassword(user, newPassword);
+
+            // Cập nhật mật khẩu mới
+            user.Password = hashedNewPassword;
             await _userRepository.UpdateAsync(user);
+
+            // Lưu thay đổi vào cơ sở dữ liệu
             await _userRepository.SaveChangesAsync();
 
             return true;
         }
+
+
 
         public async Task<UserDto> GetUserById()
         {

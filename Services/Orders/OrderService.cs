@@ -743,8 +743,31 @@ namespace KhanhSkin_BackEnd.Services.Orders
             };
         }
 
+        public virtual async Task<PagedViewModel<Order>> GetPagedOrderUser(OrderGetRequestInputDto input)
+        {
+            // Bắt đầu từ truy vấn cơ bản, đảm bảo GetOrderByStatus trả về IQueryable<Order>
+            var query = GetOrderByStatus(input);
 
-        public async Task<List<Order>> GetOrderByUserIdAndStatus(OrderGetRequestInputDto input)
+            // Đếm tổng số bản ghi thỏa mãn điều kiện
+            var totalCount = await query.CountAsync();  // Sử dụng CountAsync với IQueryable<Order>
+
+            // Áp dụng phân trang
+            query = query.Skip((input.PageIndex - 1) * input.PageSize)  // Skip hoạt động với IQueryable<Order>
+                         .Take(input.PageSize);
+
+            // Lấy dữ liệu sau khi phân trang
+            var data = await query.ToListAsync();  // ToListAsync hoạt động với IQueryable<Order>
+
+            // Trả về kết quả dưới dạng `PagedViewModel`
+            return new PagedViewModel<Order>
+            {
+                Items = data,
+                TotalRecord = totalCount
+            };
+        }
+
+
+        public IQueryable<Order> GetOrderByUserIdAndStatus(OrderGetRequestInputDto input)
         {
             try
             {
@@ -789,18 +812,8 @@ namespace KhanhSkin_BackEnd.Services.Orders
                                           || o.TrackingCode.Contains(input.FreeTextSearch));
                 }
 
-                // Lấy danh sách đơn hàng sau khi áp dụng các điều kiện lọc
-                var orders = await query.ToListAsync();
+                return query;
 
-                // Nếu không tìm thấy đơn hàng, trả về danh sách rỗng
-                if (orders == null || !orders.Any())
-                {
-                    return new List<Order>();
-                }
-
-                // Ánh xạ danh sách đơn hàng sang OrderDto và trả về
-                return  orders;
-                ;
             }
             catch (Exception ex)
             {
@@ -808,6 +821,8 @@ namespace KhanhSkin_BackEnd.Services.Orders
                 throw new Exception($"{ex.Message}");
             }
         }
+
+
 
         //log ra lịch sử xuất kho với cartItem
 

@@ -244,7 +244,7 @@ public class VoucherService : BaseService<KhanhSkin_BackEnd.Entities.Voucher, Vo
     }
 
 
-    public async Task<List<VoucherDto>> GetVoucher()
+    public async Task<List<VoucherDto>> GetVoucherActive()
     {
         try
         {
@@ -288,54 +288,87 @@ public class VoucherService : BaseService<KhanhSkin_BackEnd.Entities.Voucher, Vo
     }
 
 
-    public async Task<PagedViewModel<VoucherDto>> GetVoucherPage(VoucherGetRequestInputDto input)
+    public IQueryable<Voucher> GetVoucherByFilter(VoucherGetRequestInputDto input)
     {
-        // Khởi tạo query cơ bản
-        var query = _voucherRepository.AsQueryable();
+        // Bắt đầu truy vấn với tất cả các voucher
+        var query = _voucherRepository.AsQueryable()
+            .Include(v => v.ProductVouchers)
+            .ThenInclude(pv => pv.Product)
+            .AsNoTracking();
 
-        // Lọc theo trạng thái (còn hoạt động hoặc hết hiệu lực) nếu có
+        // Sắp xếp theo thời gian bắt đầu giảm dần
+        query = query.OrderByDescending(v => v.StartTime);
+
+        // Kiểm tra trạng thái voucher: Còn hoạt động hay không
         if (!string.IsNullOrEmpty(input.Status))
         {
             if (input.Status.ToLower() == "active")
             {
-                // Voucher còn hoạt động
-                query = query.Where(v => v.TotalUses > 0 && v.EndTime > DateTime.Now && v.IsActive);
+                query = query.Where(v => v.IsActive == true &&
+                                         v.EndTime > DateTime.Now &&
+                                         v.TotalUses > 0);
             }
             else if (input.Status.ToLower() == "inactive")
             {
-                // Voucher hết hiệu lực
-                query = query.Where(v => v.TotalUses <= 0 || v.EndTime <= DateTime.Now || !v.IsActive);
+                query = query.Where(v => v.IsActive == false ||
+                                         v.EndTime <= DateTime.Now ||
+                                         v.TotalUses == 0);
             }
         }
 
-        // Lọc theo FreeTextSearch
-        if (!string.IsNullOrWhiteSpace(input.FreeTextSearch))
+        // Kiểm tra nếu người dùng muốn lọc theo loại voucher
+        if (input.VoucherType.HasValue)
         {
-            var freeTextSearch = input.FreeTextSearch.Trim().ToLower();
-            query = query.Where(p => p.ProgramName.ToLower().Contains(freeTextSearch));
+            query = query.Where(v => v.VoucherType == input.VoucherType.Value);
         }
 
-        // Lấy tổng số bản ghi
+        // Lọc theo khoảng thời gian bắt đầu
+        if (input.StartDate.HasValue)
+        {
+            query = query.Where(v => v.StartTime >= input.StartDate.Value);
+        }
+
+        // Lọc theo khoảng thời gian kết thúc
+        if (input.EndDate.HasValue)
+        {
+            query = query.Where(v => v.EndTime <= input.EndDate.Value);
+        }
+
+        // Lọc bằng tìm kiếm tự do (FreeTextSearch)
+        if (!string.IsNullOrEmpty(input.FreeTextSearch))
+        {
+            query = query.Where(v => v.ProgramName.Contains(input.FreeTextSearch) ||
+                                     v.Description.Contains(input.FreeTextSearch) ||
+                                     v.Code.Contains(input.FreeTextSearch));
+        }
+
+        return query; // Trả về IQueryable<Voucher>
+    }
+
+
+    public virtual async Task<PagedViewModel<Voucher>> GetPagedVouchers(VoucherGetRequestInputDto input)
+    {
+        // Bắt đầu từ truy vấn cơ bản
+        var query = GetVoucherByFilter(input);
+
+        // Đếm tổng số bản ghi thỏa mãn điều kiện
         var totalCount = await query.CountAsync();
 
-        // Sắp xếp trước khi phân trang
-        query = query.OrderBy(p => p.ProgramName) // Có thể thay đổi trường sắp xếp nếu cần
-                     .Skip((input.PageIndex - 1) * input.PageSize)
+        // Áp dụng phân trang
+        query = query.Skip((input.PageIndex - 1) * input.PageSize)
                      .Take(input.PageSize);
 
-        // Truy vấn dữ liệu
-        var voucherList = await query.ToListAsync();
+        // Lấy dữ liệu sau khi phân trang
+        var data = await query.ToListAsync();
 
-        // Chuyển đổi sang DTO
-        var supplierDtoList = _mapper.Map<List<VoucherDto>>(voucherList);
-
-        // Trả về kết quả dạng phân trang
-        return new PagedViewModel<VoucherDto>
+        // Trả về kết quả dưới dạng `PagedViewModel`
+        return new PagedViewModel<Voucher>
         {
-            Items = supplierDtoList,
+            Items = data,
             TotalRecord = totalCount
         };
     }
+
 
 
 

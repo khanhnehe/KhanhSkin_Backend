@@ -134,7 +134,7 @@ namespace KhanhSkin_BackEnd.Controllers
         {
             try
             {
-                var activeVouchers = await _voucherService.GetVoucher();
+                var activeVouchers = await _voucherService.GetVoucherActive();
                 return Ok(activeVouchers);
             }
             catch (ApiException ex)
@@ -157,7 +157,7 @@ namespace KhanhSkin_BackEnd.Controllers
             try
             {
                 // Gọi tới service để lấy danh sách InventoryLog phân trang dựa trên input từ body
-                var pagedInventoryLogs = await _voucherService.GetVoucherPage(input);
+                var pagedInventoryLogs = await _voucherService.GetPagedVouchers(input);
 
                 // Trả về kết quả với dữ liệu InventoryLog đã phân trang
                 return Ok(pagedInventoryLogs);

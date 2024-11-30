@@ -86,6 +86,8 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+
+       
         [Authorize]
         [HttpGet("get-all-orders")]
         public async Task<IActionResult> GetAllOrders()
@@ -135,7 +137,7 @@ namespace KhanhSkin_BackEnd.Controllers
         {
             try
             {
-                var orderDtos = await _orderService.GetOrderByUserIdAndStatus(input);
+                var orderDtos = await _orderService.GetPagedOrderUser(input);
                 return Ok(orderDtos);
             }
             catch (ApiException ex)

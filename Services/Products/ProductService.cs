@@ -83,45 +83,7 @@ namespace KhanhSkin_BackEnd.Services.Products
         {
             return await _productRepository.AsQueryable().AnyAsync(u => u.ProductName == productName);
         }
-
-        public async Task UpdateProductAverageRating(Guid productId)
-        {
-            var product = await _productRepository.AsQueryable()
-                .Include(p => p.Reviews) // Bao gồm tất cả các đánh giá
-                .FirstOrDefaultAsync(p => p.Id == productId);
-
-            if (product == null)
-            {
-                _logger.LogWarning($"Product with ID {productId} not found. Cannot update average rating.");
-                return;
-            }
-
-            // Chuyển các đánh giá sang dạng ReviewDataDto
-            var allReviews = product.Reviews?.Select(r => new ReviewDataDto
-            {
-                Rating = r.Rating,
-                Comment = r.Comment,
-                IsApproved = r.IsApproved
-            }).ToList() ?? new List<ReviewDataDto>();
-
-            // Tính toán TotalRating và ReviewCount dựa trên tất cả các đánh giá
-            product.TotalRating = allReviews.Sum(r => r.Rating);
-            product.ReviewCount = allReviews.Count;
-
-            // Tính toán AverageRating dựa trên tất cả các đánh giá
-            product.AverageRating = product.ReviewCount > 0
-                ? (decimal)product.TotalRating / product.ReviewCount
-                : 0;
-
-            await _productRepository.UpdateAsync(product);
-            await _productRepository.SaveChangesAsync();
-
-            _logger.LogInformation($"Updated Product: {productId}, TotalRating: {product.TotalRating}, ReviewCount: {product.ReviewCount}, AverageRating: {product.AverageRating}");
-        }
-
-
-
-     
+  
         public async Task<bool> CheckVariantExist(string nameVariant, string skuVariant, Guid? productId = null)
         {
             // Kt biến thể tồn tại hay ko dựa trên NameVariant hoặc SKU của biến thể
@@ -194,6 +156,7 @@ namespace KhanhSkin_BackEnd.Services.Products
 
                 // Kt sự trùng lặp trong ds biến thể đầu vào
                 var variantSKUs = new HashSet<string>();
+
                 foreach (var variantDto in input.Variants)
                 {
                     if (variantSKUs.Contains(variantDto.SKUVariant))
@@ -990,7 +953,40 @@ namespace KhanhSkin_BackEnd.Services.Products
             return _mapper.Map<List<ProductOutstandingDto>>(products);
         }
 
+        public async Task UpdateProductAverageRating(Guid productId)
+        {
+            var product = await _productRepository.AsQueryable()
+                .Include(p => p.Reviews) // Bao gồm tất cả các đánh giá
+                .FirstOrDefaultAsync(p => p.Id == productId);
 
+            if (product == null)
+            {
+                _logger.LogWarning($"Product with ID {productId} not found. Cannot update average rating.");
+                return;
+            }
+
+            // Chuyển các đánh giá sang dạng ReviewDataDto
+            var allReviews = product.Reviews?.Select(r => new ReviewDataDto
+            {
+                Rating = r.Rating,
+                Comment = r.Comment,
+                IsApproved = r.IsApproved
+            }).ToList() ?? new List<ReviewDataDto>();
+
+            // Tính toán TotalRating và ReviewCount dựa trên tất cả các đánh giá
+            product.TotalRating = allReviews.Sum(r => r.Rating);
+            product.ReviewCount = allReviews.Count;
+
+            // Tính toán AverageRating dựa trên tất cả các đánh giá
+            product.AverageRating = product.ReviewCount > 0
+                ? (decimal)product.TotalRating / product.ReviewCount
+                : 0;
+
+            await _productRepository.UpdateAsync(product);
+            await _productRepository.SaveChangesAsync();
+
+            _logger.LogInformation($"Updated Product: {productId}, TotalRating: {product.TotalRating}, ReviewCount: {product.ReviewCount}, AverageRating: {product.AverageRating}");
+        }
     }
 
 }

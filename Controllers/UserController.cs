@@ -53,7 +53,7 @@ namespace KhanhSkin_BackEnd.Controllers
         {
             try
             {
-                await _userService.ChangePassword(input.Email, input.OldPassword, input.NewPassword);
+                await _userService.ChangePassword( input.OldPassword, input.NewPassword);
                 return Ok(new { message = "Mật khẩu đã được cập nhật thành công." });
             }
             catch (ApiException ex)

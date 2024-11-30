@@ -27,6 +27,18 @@ namespace KhanhSkin_BackEnd.Entities
         {
         }
 
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            if (!optionsBuilder.IsConfigured)
+            {
+                optionsBuilder.UseSqlServer(
+                    "Data Source=LAPTOP-316GAGPG\\SQLEXPRESS; Initial Catalog=KhanhSkin; User id=khanhhe; Password=123456;MultipleActiveResultSets=True;Connection Timeout=120;TrustServerCertificate=True",
+                    sqlOptions => sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
+                );
+            }
+        }
+
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Product>()

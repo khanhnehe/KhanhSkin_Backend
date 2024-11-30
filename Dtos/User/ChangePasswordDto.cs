@@ -4,8 +4,6 @@ namespace KhanhSkin_BackEnd.Dtos.User
 {
     public class ChangePasswordDto
     {
-        [Required]
-        public string Email { get; set; }
 
         [Required]
         [DataType(DataType.Password)]
