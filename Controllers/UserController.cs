@@ -25,7 +25,46 @@ namespace KhanhSkin_BackEnd.Controllers
         }
 
 
+        //[Authorize(Roles = "Admin")]
+        //[Consumes("multipart/form-data")]
+        [HttpPost("register-user")]
+        public async Task<IActionResult> CreateUser([FromBody] CreateUpdateUserDto input)
+        {
+            try
+            {
+                var result = await _userService.CreateUser(input);
+                return Ok(result);
+            }
+            catch (ApiException ex)
+            {
+                throw new ApiException($"{ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                throw new ApiException($"Có lỗi xảy ra: {ex.Message}");
+            }
+        }
 
+        [Authorize]
+        [HttpPut("update-user")]
+        public async Task<IActionResult> UpdateUser([FromForm] UpdateUserByIdDto input)
+        {
+            try
+            {
+                var result = await _userService.UpdateUser(input);
+                return Ok(new ApiResponse("Cập nhật thông tin người dùng thành công.", result));
+            }
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, "Lỗi khi cập nhật thông tin người dùng.");
+                return BadRequest(new ApiResponse(ex.Message, false));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi không xác định khi cập nhật thông tin người dùng.");
+                return StatusCode(500, new ApiResponse($"Có lỗi xảy ra: {ex.Message}", false));
+            }
+        }
 
         [Authorize(Roles = "Admin")]
         [Consumes("multipart/form-data")]

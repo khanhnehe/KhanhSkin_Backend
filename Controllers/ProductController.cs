@@ -46,6 +46,7 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
+
         [HttpGet("get-all-product")]
         public async Task<IActionResult> GetAll()
         {
@@ -309,6 +310,79 @@ namespace KhanhSkin_BackEnd.Controllers
                 throw new ApiException($"Có lỗi xảy ra: {ex.Message}");
             }
         }
+
+
+        [Authorize(Roles = "Admin,Staff")]
+        [HttpGet("top-selling-product")]
+        public async Task<IActionResult> GetTopSellingProductNames()
+        {
+            try
+            {
+                // Gọi service để lấy danh sách tên sản phẩm bán chạy nhất
+                var topSellingProductNames = await _productService.GetTopSellingProductNames();
+
+                // Trả về danh sách dưới dạng JSON
+                return Ok(new ApiResponse("Top 10 sản phẩm bán chạy nhất", topSellingProductNames));
+            }
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, $"Failed to get top selling products: {ex.Message}");
+                throw new ApiException(ex.Message, ex.StatusCode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"An error occurred while getting top selling products: {ex.Message}");
+                throw new ApiException($"Có lỗi xảy ra: {ex.Message}");
+            }
+        }
+
+
+        [Authorize]
+        [HttpPost("toggle-favorite")]
+        public async Task<IActionResult> ToggleFavorite([FromBody] Guid productId)
+        {
+            try
+            {
+                var product = await _productService.ToggleFavoriteAsync(productId);
+                return Ok(new
+                {
+                    message = "Thao tác yêu thích đã được thực hiện thành công!",
+                    data = product
+                });
+            }
+            catch (ApiException ex)
+            {
+                _logger.LogError(ex, $"Failed to toggle favorite for product with ID {productId}: {ex.Message}");
+                throw new ApiException(ex.Message, ex.StatusCode);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"An unexpected error occurred while toggling favorite for product with ID {productId}.");
+                throw new ApiException($"Có lỗi xảy ra: {ex.Message}");
+            }
+        }
+
+        [Authorize]
+        [HttpGet("user-favorites")]
+        public async Task<IActionResult> GetUserFavorites()
+        {
+            try
+            {
+                var favorites = await _productService.GetUserFavoritesAsync();
+
+                return Ok(new
+                {
+                    message = "Danh sách yêu thích của bạn",
+                    data = favorites
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while fetching user favorites");
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
 
     }
 }

@@ -42,7 +42,7 @@ namespace KhanhSkin_BackEnd.Entities
         public ICollection<ProductVoucher> ProductVouchers { get; set; } = new List<ProductVoucher>();
 
 
-        public Cart Cart { get; set; }
+        public ICollection<Cart> Carts { get; set; } = new List<Cart>();
 
 
     }

@@ -176,25 +176,66 @@ namespace KhanhSkin_BackEnd.Controllers
             }
         }
 
-        [Authorize(Roles = "Admin,Staff")]
-        [HttpGet("get-top-selling-products")]
-        public async Task<IActionResult> GetTopSellingProducts(DateTime startDate, DateTime endDate, int topCount = 10)
+        //[Authorize(Roles = "Admin,Staff")]
+        //[HttpGet("get-top-selling-products")]
+        //public async Task<IActionResult> GetTopSellingProducts(DateTime startDate, DateTime endDate, int topCount = 10)
+        //{
+        //    try
+        //    {
+        //        var products = await _orderService.GetTopSellingProducts(startDate, endDate, topCount);
+        //        return Ok(products);
+        //    }
+        //    catch (ApiException ex)
+        //    {
+        //        _logger.LogError(ex, $"Failed to retrieve top selling products: {ex.Message}");
+        //        throw new ApiException(ex.Message, ex.StatusCode);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, $"An error occurred while retrieving top selling products: {ex.Message}");
+        //        throw new ApiException($"{ex.Message}");
+        //    }
+        //}
+
+        [HttpGet("top-selling-products")]
+        public async Task<IActionResult> GetTopSellingProducts()
         {
             try
             {
-                var products = await _orderService.GetTopSellingProducts(startDate, endDate, topCount);
-                return Ok(products);
-            }
-            catch (ApiException ex)
-            {
-                _logger.LogError(ex, $"Failed to retrieve top selling products: {ex.Message}");
-                throw new ApiException(ex.Message, ex.StatusCode);
+                // Gọi phương thức trong OrderService để lấy dữ liệu
+                var topSellingProducts = await _orderService.GetTopSellingProductsAsync();
+
+                // Trả về kết quả
+                return Ok( topSellingProducts);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"An error occurred while retrieving top selling products: {ex.Message}");
-                throw new ApiException($"{ex.Message}");
+                _logger.LogError(ex, "Error while getting top selling products");
+                return StatusCode(500, "Có lỗi xảy ra khi lấy danh sách sản phẩm bán chạy.");
             }
         }
+
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet("count-orders-today")]
+        public async Task<IActionResult> CountOrdersToday()
+        {
+            try
+            {
+                var count = await _orderService.CountOrderToday();
+                return Ok(new
+                {
+                    message = "Số đơn hàng được tạo trong ngày hôm nay",
+                    count
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while counting today's orders");
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+
     }
 }

@@ -150,26 +150,42 @@ namespace KhanhSkin_BackEnd.Services.Brands
         }
 
 
-    public override async Task<Brand> Delete(Guid id)
+        public override async Task<Brand> Delete(Guid id)
         {
-            var brand = await _brandRepository.AsQueryable().FirstOrDefaultAsync(a => a.Id == id);
+            // Tìm thương hiệu theo Id
+            var brand = await _brandRepository.AsQueryable()
+                .Include(b => b.Products) // Bao gồm danh sách sản phẩm liên quan
+                .FirstOrDefaultAsync(b => b.Id == id);
+
             if (brand == null)
             {
                 throw new ApiException("Không tìm thấy thương hiệu.");
             }
 
-        // Kiểm tra và xóa ảnh nếu người dùng có ảnh
-            if (!string.IsNullOrEmpty(brand.Image))
+            // Kiểm tra nếu Brand có liên kết với Products
+            if (brand.Products.Any())
             {
-                await DeleteImageAsync(brand.Image); // Gọi phương thức DeleteImageAsync để xóa ảnh
+                // Lấy danh sách tên sản phẩm liên quan
+                var productNames = brand.Products.Select(p => p.ProductName).ToList();
+                var productList = string.Join(", ", productNames);
+
+                // Thông báo lỗi với danh sách sản phẩm
+                throw new ApiException($"Không thể xóa thương hiệu vì đang được liên kết với các sản phẩm: {productList}.");
             }
 
-        await _brandRepository.DeleteAsync(id);
-        await _brandRepository.SaveChangesAsync();
+            // Kiểm tra và xóa ảnh nếu có
+            if (!string.IsNullOrEmpty(brand.Image))
+            {
+                await DeleteImageAsync(brand.Image); // Gọi phương thức xóa ảnh
+            }
 
+            // Xóa thương hiệu
+            await _brandRepository.DeleteAsync(id);
+            await _brandRepository.SaveChangesAsync();
 
-        return brand; // Trả về đối tượng Brand sau khi đã xóa
+            return brand; // Trả về đối tượng Brand sau khi xóa
         }
+
 
 
         public override async Task<List<BrandDto>> GetAll()

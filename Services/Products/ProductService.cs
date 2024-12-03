@@ -23,6 +23,8 @@ using KhanhSkin_BackEnd.Services.Carts;
 using KhanhSkin_BackEnd.Share.Dtos;
 using KhanhSkin_BackEnd.Dtos.Review;
 using KhanhSkin_BackEnd.Consts;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.IdentityModel.Tokens;
 
 
 namespace KhanhSkin_BackEnd.Services.Products
@@ -38,12 +40,13 @@ namespace KhanhSkin_BackEnd.Services.Products
         private readonly IRepository<Brand> _brandRepository;
         private readonly IRepository<ProductVariant> _productVariantRepository;
         private readonly IRepository<CartItem> _cartItemRepository;
+        private readonly IRepository<Favorite> _favoriteRepository;
         private readonly IMapper _mapper;
         private readonly ILogger<ProductService> _logger;
         private readonly CloudinaryService _cloudinaryService;
         private readonly ProductRecommenService _productRecommenService;
         private readonly CartService _cartService;
-
+        private readonly ICurrentUser _currentUser;
 
         public ProductService(
             IConfiguration config,
@@ -55,6 +58,7 @@ namespace KhanhSkin_BackEnd.Services.Products
             IRepository<ProductVariant> productVariantRepository,
             IRepository<CartItem> cartItemRepository,
             IRepository<KhanhSkin_BackEnd.Entities.InventoryLog> inventoryLogRepository,
+            IRepository<Favorite> favoriteRepository, 
             IMapper mapper,
             ILogger<ProductService> logger,
             CloudinaryService cloudinaryService,
@@ -75,9 +79,92 @@ namespace KhanhSkin_BackEnd.Services.Products
             _cartItemRepository = cartItemRepository;
             _cloudinaryService = cloudinaryService;
             _cartService = cartService;
+            _favoriteRepository = favoriteRepository;
             _mapper = mapper;
+            _currentUser = currentUser;
             _logger = logger;
         }
+
+
+        public async Task<ProductOutstandingDto> ToggleFavoriteAsync(Guid productId)
+        {
+            // Lấy UserId từ thông tin người dùng hiện tại
+            var userId = _currentUser.Id;
+            if (userId == null)
+            {
+                throw new Exception("User not authenticated");
+            }
+
+            // Kiểm tra sản phẩm có tồn tại không
+            var product = await _productRepository.AsQueryable()
+                .FirstOrDefaultAsync(p => p.Id == productId);
+
+            if (product == null)
+            {
+                _logger.LogError("Product with id {Id} not found", productId);
+                throw new KeyNotFoundException($"Product with id {productId} not found");
+            }
+
+            // Kiểm tra trạng thái yêu thích
+            var existingFavorite = await _favoriteRepository.AsQueryable()
+                .FirstOrDefaultAsync(f => f.UserId == userId && f.ProductId == productId);
+
+            if (existingFavorite != null)
+            {
+                // Nếu đã tồn tại, xóa khỏi danh sách yêu thích
+                await _favoriteRepository.DeleteAsync(existingFavorite.Id);
+                _logger.LogInformation("Removed product with id {ProductId} from user's favorites", productId);
+            }
+            else
+            {
+                // Nếu chưa tồn tại, thêm vào danh sách yêu thích
+                var favorite = new Favorite
+                {
+                    UserId = userId.Value,
+                    ProductId = productId,
+                };
+
+                await _favoriteRepository.CreateAsync(favorite);
+                _logger.LogInformation("Added product with id {ProductId} to user's favorites", productId);
+            }
+
+            // Ánh xạ sản phẩm sang ProductOutstandingDto
+            var productDto = _mapper.Map<ProductOutstandingDto>(product);
+
+            // Trả về thông tin sản phẩm
+            return productDto;
+        }
+
+
+
+        public async Task<List<ProductOutstandingDto>> GetUserFavoritesAsync()
+        {
+            // Lấy UserId từ thông tin người dùng hiện tại
+            var userId = _currentUser.Id;
+            if (userId == null)
+            {
+                throw new Exception("User not authenticated");
+            }
+
+
+            // Lấy danh sách sản phẩm yêu thích
+            var favorites = await _favoriteRepository.AsQueryable()
+                .Where(f => f.UserId == userId)
+                .Include(f => f.Product)
+                .Select(f => f.Product) // Chỉ lấy thông tin sản phẩm
+                .ToListAsync();
+
+            // Ánh xạ danh sách sản phẩm sang DTO
+            var favoriteDtos = _mapper.Map<List<ProductOutstandingDto>>(favorites);
+
+            return favoriteDtos;
+        }
+
+
+
+
+
+
 
         public async Task<bool> CheckProductExist(string productName)
         {
@@ -188,35 +275,35 @@ namespace KhanhSkin_BackEnd.Services.Products
             }
 
             // Chuyển đổi DTO thành thực thể Product
-            var product = _mapper.Map<Product>(input);
-            product.BrandId = input.BrandId;
-            product.Categories = categories;
-            product.ProductTypes = productTypes;
+                    var product = _mapper.Map<Product>(input);
+                    product.BrandId = input.BrandId;
+                    product.Categories = categories;
+                    product.ProductTypes = productTypes;
 
-            // Tính SalePrice của sp nếu có Discount
-            if (product.Discount.HasValue && product.Discount.Value > 0 && product.Discount.Value <= 100)
-            {
-                product.SalePrice = product.Price - (product.Price * product.Discount.Value / 100);
-            }
-            else
-            {
-                product.SalePrice = product.Price;
-            }
+                    // Tính SalePrice của sp nếu có Discount
+                    if (product.Discount.HasValue && product.Discount.Value > 0 && product.Discount.Value <= 100)
+                    {
+                        product.SalePrice = product.Price - (product.Price * product.Discount.Value / 100);
+                    }
+                    else
+                    {
+                        product.SalePrice = product.Price;
+                    }
 
-            // Thêm sp vào db
-            await _productRepository.CreateAsync(product);
-            await _productRepository.SaveChangesAsync();
+                    // Thêm sp vào db
+                    await _productRepository.CreateAsync(product);
+                    await _productRepository.SaveChangesAsync();
 
-            // Thêm các biến thể vào db
-            foreach (var variant in variants)
-            {
-                variant.ProductId = product.Id;
-                await _productVariantRepository.CreateAsync(variant);
-            }
+                    // Thêm các biến thể vào db
+                    foreach (var variant in variants)
+                    {
+                        variant.ProductId = product.Id;
+                        await _productVariantRepository.CreateAsync(variant);
+                    }
 
-            await _productVariantRepository.SaveChangesAsync();
+                    await _productVariantRepository.SaveChangesAsync();
 
-            return product;
+                    return product;
         }
 
         public override async Task<Product> Update(Guid id, CreateUpdateProductDto input)
@@ -987,6 +1074,24 @@ namespace KhanhSkin_BackEnd.Services.Products
 
             _logger.LogInformation($"Updated Product: {productId}, TotalRating: {product.TotalRating}, ReviewCount: {product.ReviewCount}, AverageRating: {product.AverageRating}");
         }
+
+
+      
+
+        public async Task<List<RecommendationDto>> GetTopSellingProductNames()
+        {
+            var products = await _productRepository.AsQueryable()
+                .OrderByDescending(p => p.Purchases)
+                .Take(10)
+                .ToListAsync();
+
+            var result = _mapper.Map<List<RecommendationDto>>(products);
+
+            return result;
+        }
+
+        // sản phẩm yêu thích
+
     }
 
 }

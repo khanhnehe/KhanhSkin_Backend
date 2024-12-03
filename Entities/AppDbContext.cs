@@ -290,13 +290,14 @@ namespace KhanhSkin_BackEnd.Entities
                 .HasIndex(ci => new { ci.CartId, ci.ProductId, ci.VariantId })
                 .IsUnique();
 
-          
 
-            // Thiết lập mối quan hệ 1-1 giữa Voucher và Cart
+
+            // Thiết lập quan hệ 1-n giữa Voucher và Cart
             modelBuilder.Entity<Voucher>()
-                .HasOne(v => v.Cart)
+                .HasMany(v => v.Carts)
                 .WithOne(c => c.Voucher)
-                .HasForeignKey<Cart>(c => c.VoucherId);
+                .HasForeignKey(c => c.VoucherId)
+                .OnDelete(DeleteBehavior.SetNull); // Hoặc DeleteBehavior.NoAction tùy thuộc vào yêu cầu
 
             modelBuilder.Entity<Address>()
              .HasOne(a => a.User)

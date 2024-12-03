@@ -58,9 +58,9 @@ namespace KhanhSkin_BackEnd.Services.Users
             return await _userRepository.AsQueryable().AnyAsync(u => u.Email == email);
         }
 
-        public override async Task<User> Create(CreateUpdateUserDto input)
+        public async Task<User> CreateUser(CreateUpdateUserDto input)
         {
-           
+
             // Kiểm tra email đã tồn tại
             if (await CheckEmailExists(input.Email))
             {
@@ -68,12 +68,46 @@ namespace KhanhSkin_BackEnd.Services.Users
             }
 
             // Hash mật khẩu trước khi lưu
-            //var hashedPassword = _passwordHasher.HashPassword(new User(), input.Password);
+            var hashedPassword = _passwordHasher.HashPassword(new User(), input.Password);
 
 
 
             // Tạo đối tượng User từ UserCreateDto
             var user = _mapper.Map<User>(input);
+            user.Password = hashedPassword;
+
+            if (input.ImageFile != null)
+            {
+                user.Image = await UploadImage(input.ImageFile);
+            }
+
+            // Thêm người dùng vào cơ sở dữ liệu
+            await _userRepository.CreateAsync(user);
+            // Lưu thay đổi vào cơ sở dữ liệu
+            await _userRepository.SaveChangesAsync();
+
+            // Trả về đối tượng User đã tạo
+            return user;
+        }
+
+
+        public override async Task<User> Create(CreateUpdateUserDto input)
+        {
+
+            // Kiểm tra email đã tồn tại
+            if (await CheckEmailExists(input.Email))
+            {
+                throw new ApiException("Email đã được sử dụng.");
+            }
+
+            // Hash mật khẩu trước khi lưu
+            var hashedPassword = _passwordHasher.HashPassword(new User(), input.Password);
+
+
+
+            // Tạo đối tượng User từ UserCreateDto
+            var user = _mapper.Map<User>(input);
+            user.Password = hashedPassword;
 
             if (input.ImageFile != null)
             {
@@ -105,7 +139,8 @@ namespace KhanhSkin_BackEnd.Services.Users
             }
         }
 
-        private async Task<string> UploadImage(IFormFile imageFile)
+        //
+        private async Task<string> UploadImage(IFormFile imageFile, string? currentImage = null)
         {
             // Kiểm tra dung lượng và định dạng file
             if (imageFile.Length == 0 || !imageFile.ContentType.StartsWith("image/"))
@@ -115,26 +150,98 @@ namespace KhanhSkin_BackEnd.Services.Users
 
             // Xử lý tên file để tránh lỗi ký tự đặc biệt
             var sanitizedFileName = Path.GetFileNameWithoutExtension(imageFile.FileName)
-                                   .Replace(" ", "_") // Thay thế khoảng trắng bằng dấu gạch dưới
-                                   .Replace("?", ""); // Loại bỏ ký tự không hợp lệ
+                                       .Replace(" ", "_") // Thay thế khoảng trắng bằng dấu gạch dưới
+                                       .Replace("?", ""); // Loại bỏ ký tự không hợp lệ
 
             using (var stream = imageFile.OpenReadStream())
             {
-                var uploadParams = new ImageUploadParams()
+                try
                 {
-                    File = new FileDescription(sanitizedFileName, stream)
-                };
+                    var uploadParams = new ImageUploadParams()
+                    {
+                        File = new FileDescription(sanitizedFileName, stream)
+                    };
 
-                var uploadResult = await _cloudinary.UploadAsync(uploadParams);
+                    var uploadResult = await _cloudinary.UploadAsync(uploadParams);
 
-                if (uploadResult == null || uploadResult.Error != null)
+                    if (uploadResult == null || uploadResult.Error != null)
+                    {
+                        _logger.LogError("Lỗi Cloudinary: {0}", uploadResult.Error?.Message);
+                        throw new ApiException($"Lỗi khi tải ảnh lên: {uploadResult.Error?.Message}");
+                    }
+
+                    // Xóa ảnh cũ (nếu có) sau khi tải ảnh mới thành công
+                    if (!string.IsNullOrEmpty(currentImage))
+                    {
+                        await DeleteImageAsync(currentImage);
+                    }
+
+                    // Trả về URL an toàn của ảnh
+                    return uploadResult.SecureUrl.AbsoluteUri;
+                }
+                catch (Exception ex)
                 {
-                    _logger.LogError("Lỗi Cloudinary: {0}", uploadResult.Error?.Message);
-                    throw new ApiException($"Lỗi khi tải ảnh lên: {uploadResult.Error?.Message}");
+                    _logger.LogError("Lỗi khi tải ảnh lên: {0}", ex.Message);
+                    throw new ApiException("Có lỗi xảy ra khi tải ảnh lên.");
+                }
+            }
+        }
+
+
+
+        //
+        public async Task<UserDto> UpdateUser(UpdateUserByIdDto input)
+        {
+            try
+            {
+                var userId = _currentUser.Id;
+                if (userId == null)
+                {
+                    throw new Exception("User not authenticated.");
                 }
 
-                // Trả về URL an toàn của ảnh
-                return uploadResult.SecureUrl.AbsoluteUri;
+                var userEntity = await _userRepository.AsQueryable()
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(u => u.Id == userId.Value);
+
+                if (userEntity == null)
+                {
+                    throw new ApiException("Không tìm thấy người dùng.");
+                }
+
+                if (!string.Equals(userEntity.Email, input.Email, StringComparison.OrdinalIgnoreCase) &&
+                    await CheckEmailExists(input.Email))
+                {
+                    throw new ApiException("Email đã được sử dụng.");
+                }
+
+                userEntity.FullName = input.FullName;
+                userEntity.Email = input.Email;
+
+                if (input.ImageFile != null)
+                {
+                    if (!string.IsNullOrEmpty(userEntity.Image))
+                    {
+                        await DeleteImageAsync(userEntity.Image);
+                    }
+
+                    var imageUrl = await UploadImage(input.ImageFile);
+                    if (!string.IsNullOrEmpty(imageUrl))
+                    {
+                        userEntity.Image = imageUrl;
+                    }
+                }
+
+                await _userRepository.UpdateAsync(userEntity);
+                await _userRepository.SaveChangesAsync();
+
+                var userDto = _mapper.Map<UserDto>(userEntity);
+                return userDto;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi cập nhật thông tin người dùng.");
+                throw new ApiException("Có lỗi xảy ra khi cập nhật thông tin người dùng.");
             }
         }
 
@@ -223,7 +330,7 @@ namespace KhanhSkin_BackEnd.Services.Users
             return _mapper.Map<List<UserDto>>(users);
         }
 
-
+        //
         public override async Task<User> Update(Guid id, CreateUpdateUserDto input)
         {
             var user = await _userRepository.AsQueryable().IgnoreQueryFilters().FirstOrDefaultAsync(a => a.Id == id);
@@ -241,23 +348,24 @@ namespace KhanhSkin_BackEnd.Services.Users
             // Cập nhật thông tin user từ input
             _mapper.Map(input, user);
 
-            // Kiểm tra và xóa ảnh cũ nếu có ảnh mới được tải lên hoặc ảnh hiện tại bị bỏ ra
-            if (!string.IsNullOrEmpty(user.Image) && (input.ImageFile != null || input.ImageFile == null))
+            // Kiểm tra và xử lý ảnh
+            if (input.ImageFile != null) // Chỉ xử lý nếu có ảnh mới
             {
-                await DeleteImageAsync(user.Image); // Xóa ảnh cũ
-                user.Image = null; // Đặt lại thuộc tính Image của user
-            }
+                if (!string.IsNullOrEmpty(user.Image))
+                {
+                    await DeleteImageAsync(user.Image); // Xóa ảnh cũ
+                }
 
-            if (input.ImageFile != null)
-            {
                 user.Image = await UploadImage(input.ImageFile); // Tải ảnh mới lên
             }
 
+            // Cập nhật thông tin người dùng vào cơ sở dữ liệu
             await _userRepository.UpdateAsync(user);
             await _userRepository.SaveChangesAsync();
 
             return user; // Trả về đối tượng User sau khi đã cập nhật
         }
+
 
         public override async Task<User> Delete(Guid id)
         {

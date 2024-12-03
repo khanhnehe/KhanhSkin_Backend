@@ -268,55 +268,63 @@ namespace KhanhSkin_BackEnd.Services.Orders
         // Thống kê doanh thu và lợi nhuận
         public async Task<List<ReportResponseDto>> GetRevenueAndProfitReports(ReportRequestDto request)
         {
-            // Tính toán StartDate và EndDate dựa trên PeriodType
             var (startDate, endDate) = CalculateDateRange(request);
 
-            // Lọc các đơn hàng trong khoảng thời gian
+            // Lấy danh sách các đơn hàng đã hoàn thành trong khoảng thời gian đã chọn
             var orders = await _orderRepository.AsQueryable()
                 .Where(o => o.OrderDate >= startDate && o.OrderDate <= endDate && o.OrderStatus == OrderStatus.Completed)
-                .Include(o => o.OrderItems)
+                .Include(o => o.OrderItems) 
                 .ToListAsync();
 
-            // Lấy toàn bộ InventoryLog liên quan đến các sản phẩm trong các đơn hàng
-            var productIds = orders.SelectMany(o => o.OrderItems.Select(i => i.ProductId)).Distinct();
-            var variantIds = orders.SelectMany(o => o.OrderItems.Select(i => i.VariantId)).Distinct();
+            // Lấy danh sách các ProductId và VariantId từ các đơn hàng
+            var productIds = orders.SelectMany(o => o.OrderItems.Select(i => i.ProductId)).Distinct(); 
+            var variantIds = orders.SelectMany(o => o.OrderItems.Select(i => i.VariantId)).Distinct(); 
 
+            // Lấy danh sách InventoryLog liên quan đến các sản phẩm và biến thể từ các đơn hàng (chỉ bao gồm hành động nhập kho - FIFO)
             var inventoryLogs = await _inventoryLogRepository.AsQueryable()
                 .Where(log => productIds.Contains(log.ProductId) &&
                               variantIds.Contains(log.ProductVariantId) &&
-                              log.ActionType == ActionType.Import &&
-                              log.QuantityChange > 0)
-                .OrderBy(log => log.TransactionDate) // FIFO
+                              log.ActionType == ActionType.Import && // Chỉ tính log nhập kho
+                              log.QuantityChange > 0) // Chỉ quan tâm đến số lượng tăng thêm
+                .OrderBy(log => log.TransactionDate) // Sắp xếp theo ngày nhập (FIFO)
                 .ToListAsync();
 
-            // Nhóm dữ liệu theo PeriodType
+            // Nhóm dữ liệu đơn hàng theo PeriodType (ngày, tháng, năm)
             var groupedData = orders
                 .GroupBy(o =>
                 {
                     return request.PeriodType switch
                     {
+                        // Nhóm theo ngày
                         PeriodType.Day => o.OrderDate.Date.ToString("yyyy-MM-dd"),
-                        PeriodType.Month => o.OrderDate.Date.ToString("yyyy-MM-dd"), // Nhóm theo từng ngày
-                        PeriodType.Year => $"{o.OrderDate.Month}/{o.OrderDate.Year}", // Nhóm theo từng tháng
+
+                        // Nhóm theo tháng (mặc định nhóm theo từng ngày trong tháng)
+                        PeriodType.Month => o.OrderDate.Date.ToString("yyyy-MM-dd"),
+
+                        // Nhóm theo năm (dựa trên từng tháng trong năm)
+                        PeriodType.Year => $"{o.OrderDate.Month}/{o.OrderDate.Year}",
+
+                        // Xử lý lỗi nếu PeriodType không hợp lệ
                         _ => throw new Exception("PeriodType không hợp lệ.")
                     };
                 })
                 .Select(group => new ReportResponseDto
                 {
-                    TimePeriod = group.Key,
-                    Revenue = group.Sum(o => o.FinalPrice - o.ShippingPrice),
-                    GrossProfit = group.Sum(o => CalculateGrossProfit(o, inventoryLogs)) // Tính lợi nhuận gộp
+                    // Dữ liệu cho từng nhóm
+                    TimePeriod = group.Key, // Khoảng thời gian (ngày, tháng, năm)
+                    Revenue = group.Sum(o => o.FinalPrice - o.ShippingPrice), // Doanh thu (giá cuối trừ phí vận chuyển)
+                    GrossProfit = group.Sum(o => CalculateGrossProfit(o, inventoryLogs)) // Lợi nhuận gộp (dựa trên FIFO)
                 })
                 .ToList();
 
-            // Bổ sung dữ liệu rỗng (nếu không có) cho tất cả các ngày trong tháng hoặc các tháng trong năm
+            // Bổ sung dữ liệu cho đủ các ngày trong tháng nếu PeriodType là Month
             if (request.PeriodType == PeriodType.Month)
             {
-                // Lấy số ngày trong tháng
                 var currentYear = DateTime.UtcNow.Year;
                 var selectedMonth = request.SelectedMonth ?? DateTime.UtcNow.Month;
-                var daysInMonth = DateTime.DaysInMonth(currentYear, selectedMonth);
+                var daysInMonth = DateTime.DaysInMonth(currentYear, selectedMonth); // Số ngày trong tháng được chọn
 
+                // Tạo dữ liệu cho tất cả các ngày trong tháng
                 var fullMonthData = Enumerable.Range(1, daysInMonth)
                     .Select(day => new ReportResponseDto
                     {
@@ -329,15 +337,16 @@ namespace KhanhSkin_BackEnd.Services.Orders
 
                 groupedData = fullMonthData;
             }
+            // Bổ sung dữ liệu cho đủ 12 tháng nếu PeriodType là Year
             else if (request.PeriodType == PeriodType.Year)
             {
-                // Thêm đủ 12 tháng
                 var currentYear = DateTime.UtcNow.Year;
 
+                // Tạo dữ liệu cho tất cả 12 tháng trong năm
                 var fullYearData = Enumerable.Range(1, 12)
                     .Select(month => new ReportResponseDto
                     {
-                        TimePeriod = $"{month:D2}/{currentYear}",
+                        TimePeriod = $"{month:D2}/{currentYear}", // Tháng/Năm
                         Revenue = groupedData.FirstOrDefault(g => g.TimePeriod == $"{month}/{currentYear}")?.Revenue ?? 0,
                         GrossProfit = groupedData.FirstOrDefault(g => g.TimePeriod == $"{month}/{currentYear}")?.GrossProfit ?? 0,
                         GrowthRate = null
@@ -347,25 +356,27 @@ namespace KhanhSkin_BackEnd.Services.Orders
                 groupedData = fullYearData;
             }
 
-            // Tính tỷ lệ tăng trưởng
+            // Tính tỷ lệ tăng trưởng theo thời gian
             for (int i = 1; i < groupedData.Count; i++)
             {
                 var current = groupedData[i];
                 var previous = groupedData[i - 1];
 
+                // Tỷ lệ tăng trưởng (%): ((Doanh thu hiện tại - Doanh thu kỳ trước) / Doanh thu kỳ trước) * 100
                 current.GrowthRate = previous.Revenue > 0
                     ? ((current.Revenue - previous.Revenue) / previous.Revenue) * 100
                     : null;
             }
 
+            // Đảm bảo kỳ đầu tiên không có tỷ lệ tăng trưởng
             if (groupedData.Count > 0)
             {
-                groupedData[0].GrowthRate = null; // Không có kỳ trước để so sánh
+                groupedData[0].GrowthRate = null;
             }
 
+            // Trả về dữ liệu thống kê
             return groupedData;
         }
-
 
 
         private (DateTime StartDate, DateTime EndDate) CalculateDateRange(ReportRequestDto request)
@@ -404,89 +415,70 @@ namespace KhanhSkin_BackEnd.Services.Orders
             }
         }
 
-        // Tính lợi nhuận gộp
+        // Phương thức để tính lợi nhuận gộp cho một đơn hàng
         private decimal CalculateGrossProfit(Order order, List<KhanhSkin_BackEnd.Entities.InventoryLog> inventoryLogs)
         {
-            decimal totalProfit = 0;
+            decimal totalProfit = 0; // Biến tổng lợi nhuận gộp cho toàn bộ đơn hàng
 
-            foreach (var item in order.OrderItems)
+            foreach (var item in order.OrderItems) // Duyệt qua từng sản phẩm trong đơn hàng
             {
-                int remainingQuantity = item.Amount;
+                int remainingQuantity = item.Amount; // Số lượng cần bán của sản phẩm hiện tại
 
-                // Lọc các log liên quan đến sản phẩm/biến thể hiện tại
+                // Lọc các log nhập kho liên quan đến sản phẩm/biến thể hiện tại
                 var logsForItem = inventoryLogs
                     .Where(log => log.ProductId == item.ProductId &&
                                   log.ProductVariantId == item.VariantId)
                     .ToList();
 
+                // Nếu không tìm thấy log nhập kho nào liên quan
                 if (!logsForItem.Any())
                 {
-                    // Không có dữ liệu nhập kho cho sản phẩm này, bỏ qua hoặc đánh dấu lỗi
+                    // Hiển thị thông báo lỗi và bỏ qua sản phẩm này
                     Console.WriteLine($"Không tìm thấy dữ liệu nhập kho cho sản phẩm {item.ProductName}.");
-                    continue;
+                    continue; // Chuyển sang sản phẩm tiếp theo
                 }
 
-                decimal totalCost = 0;
+                decimal totalCost = 0; // Tổng giá vốn (cost price) của sản phẩm trong đơn hàng
 
-                foreach (var log in logsForItem)
+                foreach (var log in logsForItem) // Duyệt qua từng log nhập kho liên quan đến sản phẩm
                 {
-                    if (remainingQuantity > log.QuantityChange)
+                    if (remainingQuantity > log.QuantityChange) // Nếu số lượng cần bán lớn hơn số lượng trong log hiện tại
                     {
+                        // Tính giá vốn dựa trên toàn bộ số lượng trong log hiện tại
                         totalCost += log.CostPrice.GetValueOrDefault() * log.QuantityChange;
+
+                        // Giảm số lượng cần bán
                         remainingQuantity -= log.QuantityChange;
                     }
-                    else
+                    else // Nếu số lượng trong log đủ để đáp ứng số lượng cần bán
                     {
+                        // Tính giá vốn chỉ dựa trên số lượng còn lại cần bán
                         totalCost += log.CostPrice.GetValueOrDefault() * remainingQuantity;
-                        remainingQuantity = 0; // Đã đủ số lượng bán
-                        break;
+
+                        // Đặt số lượng còn lại cần bán về 0 (đã đủ số lượng)
+                        remainingQuantity = 0;
+                        break; // Thoát khỏi vòng lặp
                     }
                 }
 
-                // Xử lý tồn kho không đủ
+                // Nếu vẫn còn số lượng cần bán mà không đủ tồn kho để đáp ứng
                 if (remainingQuantity > 0)
                 {
+                    // Hiển thị thông báo lỗi và bỏ qua sản phẩm này
                     Console.WriteLine($"Tồn kho không đủ cho sản phẩm {item.ProductName}, thiếu {remainingQuantity}.");
-                    continue; // Bỏ qua sản phẩm này
+                    continue; // Chuyển sang sản phẩm tiếp theo
                 }
 
+                // Tính lợi nhuận của sản phẩm: Giá bán - Tổng giá vốn
                 var itemProfit = item.ItemsPrice - totalCost;
+
+                // Cộng lợi nhuận của sản phẩm vào tổng lợi nhuận
                 totalProfit += itemProfit;
             }
 
-            return totalProfit;
+            return totalProfit; // Trả về tổng lợi nhuận gộp của đơn hàng
         }
 
-
-        public async Task<List<TopProductReportDto>> GetTopSellingProducts(DateTime startDate, DateTime endDate, int topCount = 10)
-        {
-            var orders = await _orderRepository.AsQueryable()
-                .Include(o => o.OrderItems)
-                .Where(o => o.OrderDate >= startDate &&
-                            o.OrderDate <= endDate &&
-                            o.OrderStatus == OrderStatus.Completed)
-                .ToListAsync();
-
-            var topProducts = orders.SelectMany(o => o.OrderItems)
-                .GroupBy(oi => oi.ProductId)
-                .Where(g => g.Key != null) // Loại bỏ ProductId null
-                .Select(group => new
-                {
-                    ProductId = group.Key.Value,
-                    TotalSold = group.Sum(oi => oi.Amount),
-                    TotalRevenue = group.Sum(oi => oi.ItemsPrice)
-                })
-                .OrderByDescending(p => p.TotalSold)
-                .Take(topCount)
-                .ToList();
-
-            return topProducts.Select(p => new TopProductReportDto
-            {
-                ProductId = p.ProductId,
-                TotalSold = p.TotalSold,
-                TotalRevenue = p.TotalRevenue
-            }).ToList();
-        }
 
 
         // Phương thức thay đổi trạng thái đơn hàng
@@ -679,7 +671,9 @@ namespace KhanhSkin_BackEnd.Services.Orders
         }
 
 
+        // cho admin
         public IQueryable<Order> GetOrderByStatus(OrderGetRequestInputDto input)
+
         {
             // Bắt đầu truy vấn với tất cả đơn hàng
             var query = _orderRepository.AsQueryable()
@@ -743,10 +737,54 @@ namespace KhanhSkin_BackEnd.Services.Orders
             };
         }
 
+        // cho từng người dùng ---------------------------
+        public IQueryable<Order> GetOrderByStatusUser(OrderGetRequestInputDto input)
+
+        {
+            // Bắt đầu truy vấn với tất cả đơn hàng
+            var query = _orderRepository.AsQueryable()
+                .Include(o => o.OrderItems)
+                .Include(o => o.User)
+                //.Include(o => o.Address)
+                .AsNoTracking();
+
+            query = query.OrderByDescending(o => o.OrderDate);
+
+            // Kiểm tra nếu người dùng muốn lọc theo trạng thái đơn hàng
+            if (input.OrderStatus.HasValue)
+            {
+                query = query.Where(o => o.OrderStatus == input.OrderStatus.Value);
+            }
+
+            // Kiểm tra nếu người dùng muốn lọc theo StartDate
+            if (input.StartDate.HasValue)
+            {
+                query = query.Where(o => o.OrderDate >= input.StartDate.Value);
+            }
+
+            // Kiểm tra nếu người dùng muốn lọc theo EndDate
+            if (input.EndDate.HasValue)
+            {
+                query = query.Where(o => o.OrderDate <= input.EndDate.Value);
+            }
+
+            // Kiểm tra nếu có giá trị FreeTextSearch, tìm theo ProductName và FullName
+            if (!string.IsNullOrEmpty(input.FreeTextSearch))
+            {
+                query = query.Where(o => o.OrderItems.Any(oi => oi.ProductName.Contains(input.FreeTextSearch))
+                                      || o.User.FullName.Contains(input.FreeTextSearch)
+                                      || o.TrackingCode.Contains(input.FreeTextSearch));
+            }
+
+            return query; // Trả về IQueryable<Order> thay vì Task<List<Order>>
+        }
+
+
         public virtual async Task<PagedViewModel<Order>> GetPagedOrderUser(OrderGetRequestInputDto input)
         {
-            // Bắt đầu từ truy vấn cơ bản, đảm bảo GetOrderByStatus trả về IQueryable<Order>
-            var query = GetOrderByStatus(input);
+
+            // Bắt đầu từ truy vấn cơ bản, thêm điều kiện lọc theo userId
+            var query = GetOrderByUserIdAndStatus(input);
 
             // Đếm tổng số bản ghi thỏa mãn điều kiện
             var totalCount = await query.CountAsync();  // Sử dụng CountAsync với IQueryable<Order>
@@ -765,6 +803,7 @@ namespace KhanhSkin_BackEnd.Services.Orders
                 TotalRecord = totalCount
             };
         }
+
 
 
         public IQueryable<Order> GetOrderByUserIdAndStatus(OrderGetRequestInputDto input)
@@ -878,7 +917,36 @@ namespace KhanhSkin_BackEnd.Services.Orders
         //////
         ///
         // Thống kê doanh thu và lợi nhuận
-       
+
+
+        public async Task<List<RecommendationDto>> GetTopSellingProductsAsync()
+        {
+            // Lấy danh sách top 10 sản phẩm bán chạy nhất
+            var topSellingProducts = await _productRepository.AsQueryable()
+                .OrderByDescending(p => p.Purchases) // Sắp xếp giảm dần theo số lượng bán
+                .Take(10) // Lấy top 10 sản phẩm
+                .ToListAsync();
+
+            // Ánh xạ danh sách Product sang ProductDto
+            var result = _mapper.Map<List<RecommendationDto>>(topSellingProducts);
+
+            return result;
+        }
+
+        // thống kê đơn hàng trong ngày
+        public async Task<int> CountOrderToday()
+        {
+            // Lấy ngày hiện tại
+            var today = DateTime.Today;
+
+            // Đếm số đơn hàng có OrderDate trong ngày hiện tại
+            var count = await _orderRepository.AsQueryable()
+                .Where(o => o.OrderDate.Date == today)
+                .CountAsync();
+
+            return count;
+        }
+
 
     }
 }

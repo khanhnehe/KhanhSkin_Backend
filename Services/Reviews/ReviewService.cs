@@ -211,7 +211,9 @@ namespace KhanhSkin_BackEnd.Services.Reviews
         {
             // Bắt đầu từ truy vấn cơ bản và bao gồm các liên kết
             var query = _reviewRepository.AsQueryable();
-              
+
+            query = query.OrderByDescending(p => p.ReviewDate);
+
 
             // Lọc theo ngày bắt đầu
             if (input.StartDate != null)
@@ -230,6 +232,8 @@ namespace KhanhSkin_BackEnd.Services.Reviews
             {
                 query = query.Where(r => r.IsApproved == input.IsApproved);
             }
+
+
 
             // Đếm tổng số bản ghi thỏa mãn điều kiện
             var totalCount = await query.CountAsync();
@@ -284,6 +288,9 @@ namespace KhanhSkin_BackEnd.Services.Reviews
         {
             // Bắt đầu từ truy vấn cơ bản và bao gồm các liên kết
             var query = _reviewRepository.AsQueryable();
+
+            query = query.OrderByDescending(p => p.ReviewDate);
+
 
             // Lọc theo ProductId nếu có
             if (input.ProductId != null)

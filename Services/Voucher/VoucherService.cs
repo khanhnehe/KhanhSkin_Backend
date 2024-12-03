@@ -9,6 +9,7 @@ using static KhanhSkin_BackEnd.Consts.Enums;
 using Microsoft.EntityFrameworkCore;
 using KhanhSkin_BackEnd.Dtos.Supplier;
 using KhanhSkin_BackEnd.Share.Dtos;
+using KhanhSkin_BackEnd.Dtos.Product;
 
 public class VoucherService : BaseService<KhanhSkin_BackEnd.Entities.Voucher, VoucherDto, CreateUpdateVoucherDto, VoucherGetRequestInputDto>
 {
@@ -369,8 +370,7 @@ public class VoucherService : BaseService<KhanhSkin_BackEnd.Entities.Voucher, Vo
         };
     }
 
-
-
+    
 
 
 }

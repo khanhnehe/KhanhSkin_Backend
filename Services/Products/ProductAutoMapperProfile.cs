@@ -71,6 +71,13 @@ namespace KhanhSkin_BackEnd.Services.Products
             CreateMap<ProductInventoryImportDto, KhanhSkin_BackEnd.Entities.InventoryLog>()
                .ForMember(dest => dest.Id, opt => opt.Ignore());
 
+
+            CreateMap<Product, RecommendationDto>()
+                .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.ProductName))
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.Purchases, opt => opt.MapFrom(src => src.Purchases));
+
+
         }
     }
 }

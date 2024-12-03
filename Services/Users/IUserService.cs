@@ -11,6 +11,9 @@ namespace KhanhSkin_BackEnd.Services.Users
     {
 
         Task<bool> ChangePassword(string currentPassword, string newPassword);
+        Task<User> CreateUser(CreateUpdateUserDto input);
+
+
 
         Task<List<UserDto>> GetUsersByRole(Enums.Role role);
 
